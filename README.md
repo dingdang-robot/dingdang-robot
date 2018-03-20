@@ -1,11 +1,11 @@
 叮当——中文语音对话机器人
 =============
 
-[![GitHub tag](https://img.shields.io/github/tag/wzpan/dingdang-robot.svg)](https://github.com/wzpan/dingdang-robot/releases)
-[![Travis](https://img.shields.io/travis/wzpan/dingdang-robot.svg)](https://travis-ci.org/wzpan/dingdang-robot)
-[![GitHub issues](https://img.shields.io/github/issues/wzpan/dingdang-robot.svg)](https://github.com/wzpan/dingdang-robot/issues)
-[![GitHub pull requests](https://img.shields.io/github/issues-pr/wzpan/dingdang-robot.svg)](https://github.com/wzpan/dingdang-robot/pulls)
-[![GitHub pull requests](https://img.shields.io/badge/license-MIT-brightgreen.svg)](https://github.com/wzpan/dingdang-robot/blob/master/LICENSE)
+[![GitHub tag](https://img.shields.io/github/tag/dingdang-robot/dingdang-robot.svg)](https://github.com/dingdang-robot/dingdang-robot/releases)
+[![Travis](https://img.shields.io/travis/dingdang-robot/dingdang-robot.svg)](https://travis-ci.org/dingdang-robot/dingdang-robot)
+[![GitHub issues](https://img.shields.io/github/issues/dingdang-robot/dingdang-robot.svg)](https://github.com/dingdang-robot/dingdang-robot/issues)
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/dingdang-robot/dingdang-robot.svg)](https://github.com/dingdang-robot/dingdang-robot/pulls)
+[![GitHub pull requests](https://img.shields.io/badge/license-MIT-brightgreen.svg)](https://github.com/dingdang-robot/dingdang-robot/blob/master/LICENSE)
 [![QQ群](https://img.shields.io/badge/QQ%E7%BE%A4-580447290-red.svg
 )](http://onmw7y6f4.bkt.clouddn.com/dingdang-group.png)
 
@@ -64,7 +64,7 @@
 
 ## Demo
 
-详见 [Demo](https://github.com/wzpan/dingdang-robot/wiki/demo) 
+详见 [Demo](https://github.com/dingdang-robot/dingdang-robot/wiki/demo) 
 
 ## 硬件要求
 
@@ -75,7 +75,7 @@
 * 摄像头（可选，用于拍照）。
 * 读卡器（可选，用于刷镜像进内存卡）。
 
-如果不知道怎么选择，可以参考 [硬件选购建议](https://github.com/wzpan/dingdang-robot/wiki/hardware-choices) 。
+如果不知道怎么选择，可以参考 [硬件选购建议](https://github.com/dingdang-robot/dingdang-robot/wiki/hardware-choices) 。
 
 ## 安装
 
@@ -83,15 +83,15 @@
 
 推荐使用镜像安装的方式，像安装 Raspbian 系统一样，安装完后，只需要少量的配置即可立即使用叮当机器人。
 
-* [下载地址](https://github.com/wzpan/dingdang-robot/wiki/changelog)
+* [下载地址](https://github.com/dingdang-robot/dingdang-robot/wiki/changelog)
 
-镜像安装方法详见 [镜像安装](https://github.com/wzpan/dingdang-robot/wiki/install#%E9%95%9C%E5%83%8F%E5%AE%89%E8%A3%85) 。
+镜像安装方法详见 [镜像安装](https://github.com/dingdang-robot/dingdang-robot/wiki/install#%E9%95%9C%E5%83%8F%E5%AE%89%E8%A3%85) 。
 
 刷完后记得在启动系统后进入 `raspi-config` 的高级选项中开启 Extend FileSystem，以让内存卡中的剩余空间合并到主分区中。
 
 ### 手动安装
 
-见 [手动安装](https://github.com/wzpan/dingdang-robot/wiki/install)。
+见 [手动安装](https://github.com/dingdang-robot/dingdang-robot/wiki/install)。
 
 ## 升级
 
@@ -102,7 +102,7 @@ git pull
 
 ## 配置
 
-请参考 [配置](https://github.com/wzpan/dingdang-robot/wiki/configuration) 。
+请参考 [配置](https://github.com/dingdang-robot/dingdang-robot/wiki/configuration) 。
 
 ## 运行
 
@@ -136,17 +136,17 @@ kill -9 PID号
 
 ## 插件
 
-* [官方插件列表](https://github.com/wzpan/dingdang-robot/wiki/plugins)
+* [官方插件列表](https://github.com/dingdang-robot/dingdang-robot/wiki/plugins)
 * [第三方插件](https://github.com/dingdang-robot/dingdang-contrib)
 
 
 ## 贡献
 
 * 喜欢本项目请先打一颗星；
-* 提 bug 请到 [issue 页面](https://github.com/wzpan/dingdang-robot/issues)；
+* 提 bug 请到 [issue 页面](https://github.com/dingdang-robot/dingdang-robot/issues)；
 * 要贡献代码，欢迎 fork 之后再提 pull request；
 * 插件请提交到 [dingdang-contrib](https://github.com/dingdang-robot/dingdang-contrib) ；
-* 您的捐赠将鼓励我继续完善叮当，支持支付宝、微信等捐赠形式。捐赠的时候，请备注下您的昵称或姓名，我将会把您备注的信息添加到 [捐赠者名单](https://github.com/wzpan/dingdang-robot/wiki/donate-list) 中：
+* 您的捐赠将鼓励我继续完善叮当，支持支付宝、微信等捐赠形式。捐赠的时候，请备注下您的昵称或姓名，我将会把您备注的信息添加到 [捐赠者名单](https://github.com/dingdang-robot/dingdang-robot/wiki/donate-list) 中：
 
 | 支付宝 | 微信支付 |
 | ------ | --------- |
@@ -164,17 +164,17 @@ kill -9 PID号
 * 叮当的前身是 [jasper-client](https://github.com/jasperproject/jasper-client)。感谢 [Shubhro Saha](http://www.shubhro.com/), [Charles Marsh](http://www.crmarsh.com/) and [Jan Holthuis](http://homepage.ruhr-uni-bochum.de/Jan.Holthuis/) 在 Jasper 项目上做出的优秀贡献；
 * 微信机器人使用的是 [liuwons](http://lwons.com/) 的 [wxBot](https://github.com/liuwons/wxBot)。
 * 感谢果果 [@qwedc001](http://github.com/qwedc001) 帮忙搭建维护 [论坛](http://bbs.hahack.com) 。
-* 感谢 [@GoldJohnKing](https://github.com/GoldJohnKing) 设计了叮当的 [logo](https://github.com/wzpan/dingdang-robot/issues/39) 。
+* 感谢 [@GoldJohnKing](https://github.com/GoldJohnKing) 设计了叮当的 [logo](https://github.com/dingdang-robot/dingdang-robot/issues/39) 。
 
 ## FAQ
 
 - 我能否更换成其他唤醒词，而不是叫“叮当”？
 
-  - 能。参见 [修改唤醒词](https://github.com/wzpan/dingdang-robot/wiki/configuration#%E9%85%8D%E7%BD%AE%E9%BA%A6%E5%85%8B%E9%A3%8E) 。[项目站点](http://dingdang.hahack.com) 置顶的视频就演示了与一个名为“小梅”的机器人聊天。
+  - 能。参见 [修改唤醒词](https://github.com/dingdang-robot/dingdang-robot/wiki/configuration#%E9%85%8D%E7%BD%AE%E9%BA%A6%E5%85%8B%E9%A3%8E) 。[项目站点](http://dingdang.hahack.com) 置顶的视频就演示了与一个名为“小梅”的机器人聊天。
 
 - 百度不太能够准确识别我的指令，怎么办？
 
-  - 参见 [优化百度语音识别准确度](https://github.com/wzpan/dingdang-robot/wiki/configuration#%E4%BC%98%E5%8C%96%E7%99%BE%E5%BA%A6%E8%AF%AD%E9%9F%B3%E8%AF%86%E5%88%AB%E5%87%86%E7%A1%AE%E5%BA%A6) 。
+  - 参见 [优化百度语音识别准确度](https://github.com/dingdang-robot/dingdang-robot/wiki/configuration#%E4%BC%98%E5%8C%96%E7%99%BE%E5%BA%A6%E8%AF%AD%E9%9F%B3%E8%AF%86%E5%88%AB%E5%87%86%E7%A1%AE%E5%BA%A6) 。
 
 - 为什么取名为“叮当”？
 
@@ -182,7 +182,7 @@ kill -9 PID号
 
 - 我想了解你的系统镜像都做了哪些定制？
 
-  - 请参见 [dingdang 镜像与 Raspbian 系统的区别](https://github.com/wzpan/dingdang-robot/wiki/different-with-raspbian) 。
+  - 请参见 [dingdang 镜像与 Raspbian 系统的区别](https://github.com/dingdang-robot/dingdang-robot/wiki/different-with-raspbian) 。
   
 - pi 账户默认登录密码是啥？
 
