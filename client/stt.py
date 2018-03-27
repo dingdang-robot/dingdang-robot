@@ -114,7 +114,7 @@ class PocketSphinxSTT(AbstractSTTEngine):
             import pocketsphinx as ps
         except Exception:
             import pocketsphinx as ps
-
+        self._pocketsphinx_v5 = hasattr(ps.Decoder, 'default_config')
         with tempfile.NamedTemporaryFile(prefix='psdecoder_',
                                          suffix='.log', delete=False) as f:
             self._logfile = f.name
@@ -125,10 +125,12 @@ class PocketSphinxSTT(AbstractSTTEngine):
         # Perform some checks on the hmm_dir so that we can display more
         # meaningful error messages if neccessary
         if not os.path.exists(hmm_dir):
-            msg = ("hmm_dir '%s' does not exist! Please make sure that you " +
-                   "have set the correct hmm_dir in your profile.") % hmm_dir
-            self._logger.error(msg)
-            raise RuntimeError(msg)
+            hmm_dir = "/usr/share/pocketsphinx/model/hmm/en-us/en-us"
+            if not os.path.exists(hmm_dir):
+                msg = ("hmm_dir '%s' does not exist! Please make sure that you " +
+                       "have set the correct hmm_dir in your profile.") % hmm_dir
+                self._logger.error(msg)
+                raise RuntimeError(msg)
         # Lets check if all required files are there. Refer to:
         # http://cmusphinx.sourceforge.net/wiki/acousticmodelformat
         # for details
@@ -148,8 +150,15 @@ class PocketSphinxSTT(AbstractSTTEngine):
                                  "hmm_dir in your profile.",
                                  hmm_dir, ', '.join(missing_hmm_files))
 
-        self._decoder = ps.Decoder(hmm=hmm_dir, logfn=self._logfile,
-                                   **vocabulary.decoder_kwargs)
+        if self._pocketsphinx_v5:
+            config = ps.Decoder.default_config()
+            config.set_string('-hmm', os.path.join(hmm_dir, 'en-us/en-us'))
+            config.set_string('-lm', os.path.join(hmm_dir, 'en-us/en-us.lm.bin'))
+            config.set_string('-dict', os.path.join(hmm_dir, 'en-us/cmudict-en-us.dict'))
+            self._decoder = ps.Decoder(config)
+        else:
+            self._decoder = ps.Decoder(hmm=hmm_dir, logfn=self._logfile,
+                                       **vocabulary.decoder_kwargs)
 
     def __del__(self):
         os.remove(self._logfile)
@@ -188,14 +197,17 @@ class PocketSphinxSTT(AbstractSTTEngine):
         self._decoder.start_utt()
         self._decoder.process_raw(data, False, True)
         self._decoder.end_utt()
-
-        result = self._decoder.get_hyp()
+        if self._pocketsphinx_v5:
+            hyp = self._decoder.hyp()
+            result = hyp.hypstr if hyp is not None else ''
+        else:
+            result = self._decoder.get_hyp()
         with open(self._logfile, 'r+') as f:
             for line in f:
                 self._logger.debug(line.strip())
             f.truncate()
 
-        transcribed = [result[0]]
+        transcribed = [result]
         self._logger.info('PocketSphinx 识别到了：%r', transcribed)
         return transcribed
 
