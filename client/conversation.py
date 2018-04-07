@@ -84,5 +84,6 @@ class Conversation(object):
                                threshold)
             if input:
                 self.brain.query(input, self.wxbot)
-            else:
-                self.mic.say("什么?")
+            elif 'shut_up_if_no_input' in self.profile and \
+                    not self.profile['shut_up_if_no_input']:
+                self.mic.say(u"什么?")
