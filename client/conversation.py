@@ -86,8 +86,12 @@ class Conversation(object):
             pixels.think()
             if input:
                 self.brain.query(input, self.wxbot)
-            elif 'shut_up_if_no_input' in self.profile and \
-                 not self.profile['shut_up_if_no_input']:
+            elif 'shut_up_if_no_input' in self.profile:
+                if not self.profile['shut_up_if_no_input']:
+                    self.mic.say(u"什么?")
+                else:
+                    self._logger.debug("Active Listen return empty")
+            else:
                 self.mic.say(u"什么?")
             pixels.off()
 
