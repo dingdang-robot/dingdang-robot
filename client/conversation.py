@@ -94,4 +94,3 @@ class Conversation(object):
             else:
                 self.mic.say(u"什么?")
             pixels.off()
-
