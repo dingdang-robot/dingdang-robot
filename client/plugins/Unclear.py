@@ -2,6 +2,7 @@
 from sys import maxint
 import random
 from client.robot import get_robot_by_slug
+from client import dingdangpath
 
 WORDS = []
 PRIORITY = -(maxint + 1)
@@ -38,3 +39,11 @@ def handle(text, mic, profile, wxbot=None):
 
 def isValid(text):
     return True
+
+
+def beforeListen(mic, profile, wxbot=None):
+    mic.play(dingdangpath.data('audio', 'beep_hi.wav'))
+
+
+def afterListen(mic, profile, wxbot=None):
+    mic.play(dingdangpath.data('audio', 'beep_lo.wav'))

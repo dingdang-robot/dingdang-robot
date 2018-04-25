@@ -100,7 +100,6 @@ def wechatUser(profile, wxbot, SUBJECT="", BODY="",
             for fpath in IMAGE_LIST:
                 wxbot.send_img_msg_by_uid(fpath, user_id)
             return True
-            return True
         except Exception as e:
             _logger.error(e)
             return False

@@ -1,46 +1,46 @@
 # -*- coding: utf-8-*-
 from __future__ import absolute_import
 import logging
+import time
 from .notifier import Notifier
 from .brain import Brain
-import time
 from .drivers.pixels import pixels
+from . import plugin_loader
+from . import config
 
 
 class Conversation(object):
 
-    def __init__(self, persona, mic, profile):
+    def __init__(self, persona, mic):
         self._logger = logging.getLogger(__name__)
         self.persona = persona
         self.mic = mic
-        self.profile = profile
-        self.brain = Brain(mic, profile)
-        self.notifier = Notifier(profile, self.brain)
+        self.brain = Brain(mic)
+        self.notifier = Notifier(config.get(), self.brain)
         self.wxbot = None
 
-    def is_proper_time(self):
+    @staticmethod
+    def is_proper_time():
         """
         whether it's the proper time to gather
         notifications without disturb user
         """
-        if 'do_not_bother' not in self.profile:
+        if not config.has('do_not_bother'):
             return True
+        bother_profile = config.get('do_not_bother')
+        if not bother_profile['enable']:
+            return True
+        if 'since' not in bother_profile or 'till' not in bother_profile:
+            return True
+
+        since = bother_profile['since']
+        till = bother_profile['till']
+        current = time.localtime(time.time()).tm_hour
+        if till > since:
+            return current not in range(since, till)
         else:
-            if self.profile['do_not_bother']['enable']:
-                if 'since' not in self.profile['do_not_bother'] or \
-                   'till' not in self.profile['do_not_bother']:
-                    return True
-                else:
-                    since = self.profile['do_not_bother']['since']
-                    till = self.profile['do_not_bother']['till']
-                    current = time.localtime(time.time()).tm_hour
-                    if till > since:
-                        return current not in range(since, till)
-                    else:
-                        return not (current in range(since, 25) or
-                                    current in range(-1, till))
-            else:
-                return True
+            return not (current in range(since, 25) or
+                        current in range(-1, till))
 
     def handleForever(self):
         """
@@ -77,20 +77,33 @@ class Conversation(object):
                 self._logger.debug("Skip passive listening")
                 if not self.mic.chatting_mode:
                     self.mic.skip_passive = False
-            pixels.wakeup()
+                continue
+            pixels.wakeup()            
+
             self._logger.debug("Started to listen actively with threshold: %r",
                                threshold)
+
+            # run plugins before listen
+            for plugin in plugin_loader.get_plugins_before_listen():
+                continueHandle = False
+                try:
+                    continueHandle = plugin.beforeListen(self.mic, config.get(), self.wxbot)
+                except Exception:
+                    self._logger.error("plugin '%s' run error", plugin.__name__,
+                                       exc_info=True)
+                finally:
+                    if not continueHandle:
+                        break
+
             input = self.mic.activeListenToAllOptions(threshold)
             self._logger.debug("Stopped to listen actively with threshold: %r",
                                threshold)
             pixels.think()
+
             if input:
                 self.brain.query(input, self.wxbot)
-            elif 'shut_up_if_no_input' in self.profile:
-                if not self.profile['shut_up_if_no_input']:
-                    self.mic.say(u"什么?")
-                else:
-                    self._logger.debug("Active Listen return empty")
+            elif config.get('shut_up_if_no_input', False):
+                self._logger.info("Active Listen return empty")
             else:
                 self.mic.say(u"什么?")
             pixels.off()
