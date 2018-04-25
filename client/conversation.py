@@ -85,10 +85,11 @@ class Conversation(object):
             for plugin in plugin_loader.get_plugins_before_listen():
                 continueHandle = False
                 try:
-                    continueHandle = plugin.beforeListen(self.mic, config.get(), self.wxbot)
+                    continueHandle = plugin.beforeListen(
+                        self.mic, config.get(), self.wxbot)
                 except Exception:
-                    self._logger.error("plugin '%s' run error", plugin.__name__,
-                                       exc_info=True)
+                    self._logger.error("plugin '%s' run error",
+                                       plugin.__name__, exc_info=True)
                 finally:
                     if not continueHandle:
                         break
@@ -101,10 +102,11 @@ class Conversation(object):
             for plugin in plugin_loader.get_plugins_after_listen():
                 continueHandle = False
                 try:
-                    continueHandle = plugin.afterListen(self.mic, config.get(), self.wxbot)
+                    continueHandle = plugin.afterListen(
+                        self.mic, config.get(), self.wxbot)
                 except Exception:
-                    self._logger.error("plugin '%s' run error", plugin.__name__,
-                                       exc_info=True)
+                    self._logger.error("plugin '%s' run error",
+                                       plugin.__name__, exc_info=True)
                 finally:
                     if not continueHandle:
                         break

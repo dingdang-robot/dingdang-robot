@@ -27,7 +27,6 @@ from abc import ABCMeta, abstractmethod
 from uuid import getnode as get_mac
 
 import argparse
-import yaml
 
 from . import diagnose
 from . import dingdangpath
