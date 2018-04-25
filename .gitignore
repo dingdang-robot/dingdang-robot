@@ -86,3 +86,4 @@ wget-log*
 client/mic_array
 login/wxqr.png
 .idea/
+sftp-config.json
