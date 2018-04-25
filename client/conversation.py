@@ -87,10 +87,11 @@ class Conversation(object):
             for plugin in plugin_loader.get_plugins_before_listen():
                 continueHandle = False
                 try:
-                    continueHandle = plugin.beforeListen(self.mic, config.get(), self.wxbot)
+                    continueHandle = plugin.beforeListen(
+                        self.mic, config.get(), self.wxbot)
                 except Exception:
-                    self._logger.error("plugin '%s' run error", plugin.__name__,
-                                       exc_info=True)
+                    self._logger.error("plugin '%s' run error",
+                                       plugin.__name__, exc_info=True)
                 finally:
                     if not continueHandle:
                         break
@@ -98,7 +99,23 @@ class Conversation(object):
             input = self.mic.activeListenToAllOptions(threshold)
             self._logger.debug("Stopped to listen actively with threshold: %r",
                                threshold)
+<<<<<<< HEAD
             pixels.think()
+=======
+
+            # run plugins after listen
+            for plugin in plugin_loader.get_plugins_after_listen():
+                continueHandle = False
+                try:
+                    continueHandle = plugin.afterListen(
+                        self.mic, config.get(), self.wxbot)
+                except Exception:
+                    self._logger.error("plugin '%s' run error",
+                                       plugin.__name__, exc_info=True)
+                finally:
+                    if not continueHandle:
+                        break
+>>>>>>> efc94c2... fix: modify for PEP8
 
             if input:
                 self.brain.query(input, self.wxbot)

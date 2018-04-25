@@ -13,8 +13,11 @@ import pyaudio
 from . import dingdangpath
 from . import mute_alsa
 from .app_utils import wechatUser
+<<<<<<< HEAD
 from .drivers.pixels import pixels
 from . import plugin_loader
+=======
+>>>>>>> efc94c2... fix: modify for PEP8
 from . import config
 
 
