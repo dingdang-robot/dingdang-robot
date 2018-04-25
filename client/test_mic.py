@@ -29,5 +29,5 @@ class Mic:
         self.idx += 1
         return input
 
-    def say(self, phrase, OPTIONS=None):
+    def say(self, phrase, OPTIONS=None, cache=False):
         self.outputs.append(phrase)
