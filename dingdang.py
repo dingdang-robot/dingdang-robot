@@ -48,7 +48,8 @@ class Dingdang(object):
         slug = config.get('stt_passive_engine', stt_engine_slug)
         stt_passive_engine_class = stt.get_engine_by_slug(slug)
 
-        tts_engine_slug = config.get('tts_engine', tts.get_default_engine_slug())
+        tts_engine_slug = config.get('tts_engine',
+                                     tts.get_default_engine_slug())
         tts_engine_class = tts.get_engine_by_slug(tts_engine_slug)
 
         # Initialize Mic
