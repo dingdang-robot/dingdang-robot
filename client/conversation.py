@@ -99,9 +99,7 @@ class Conversation(object):
             input = self.mic.activeListenToAllOptions(threshold)
             self._logger.debug("Stopped to listen actively with threshold: %r",
                                threshold)
-<<<<<<< HEAD
             pixels.think()
-=======
 
             # run plugins after listen
             for plugin in plugin_loader.get_plugins_after_listen():
@@ -115,7 +113,6 @@ class Conversation(object):
                 finally:
                     if not continueHandle:
                         break
->>>>>>> efc94c2... fix: modify for PEP8
 
             if input:
                 self.brain.query(input, self.wxbot)
