@@ -27,10 +27,10 @@ from abc import ABCMeta, abstractmethod
 from uuid import getnode as get_mac
 
 import argparse
-import yaml
 
 from . import diagnose
 from . import dingdangpath
+from . import config
 
 try:
     import gtts
@@ -59,8 +59,9 @@ class AbstractTTSEngine(object):
 
     @classmethod
     def get_instance(cls):
-        config = cls.get_config()
-        instance = cls(**config)
+        param = cls.get_config()
+        print(param)
+        instance = cls(**param)
         return instance
 
     @classmethod
@@ -141,6 +142,10 @@ class AbstractMp3TTSEngine(AbstractTTSEngine):
                 else:
                     os.remove(tmpfile)
 
+    def get_speech(self, phrase):
+        # The subclass needs to implement
+        return None
+
 
 class SimpleMp3Player(AbstractMp3TTSEngine):
     """
@@ -161,7 +166,7 @@ class BaiduTTS(AbstractMp3TTSEngine):
     使用百度语音合成技术
     要使用本模块, 首先到 yuyin.baidu.com 注册一个开发者账号,
     之后创建一个新应用, 然后在应用管理的"查看key"中获得 API Key 和 Secret Key
-    填入 profile.xml 中.
+    填入 profile.yml 中.
     ...
         baidu_yuyin: 'AIzaSyDoHmTEToZUQrltmORWS4Ott0OHVA62tw8'
             api_key: 'LMFYhLdXSSthxCNLR7uxFszQ'
@@ -171,7 +176,8 @@ class BaiduTTS(AbstractMp3TTSEngine):
 
     SLUG = "baidu-tts"
 
-    def __init__(self, api_key, secret_key, per=0):
+    def __init__(self, api_key, secret_key, per=0, **args):
+        super(self.__class__, self).__init__()
         self._logger = logging.getLogger(__name__)
         self.api_key = api_key
         self.secret_key = secret_key
@@ -180,24 +186,8 @@ class BaiduTTS(AbstractMp3TTSEngine):
 
     @classmethod
     def get_config(cls):
-        # FIXME: Replace this as soon as we have a config module
-        config = {}
         # Try to get baidu_yuyin config from config
-        profile_path = dingdangpath.config('profile.yml')
-        if os.path.exists(profile_path):
-            with open(profile_path, 'r') as f:
-                profile = yaml.safe_load(f)
-                if 'baidu_yuyin' in profile:
-                    if 'api_key' in profile['baidu_yuyin']:
-                        config['api_key'] = \
-                            profile['baidu_yuyin']['api_key']
-                    if 'secret_key' in profile['baidu_yuyin']:
-                        config['secret_key'] = \
-                            profile['baidu_yuyin']['secret_key']
-                    if 'per' in profile['baidu_yuyin']:
-                        config['per'] = \
-                            profile['baidu_yuyin']['per']
-        return config
+        return config.get('baidu_yuyin', {})
 
     @classmethod
     def is_available(cls):
@@ -270,29 +260,20 @@ class BaiduTTS(AbstractMp3TTSEngine):
 class IFlyTekTTS(AbstractMp3TTSEngine):
     """
     使用讯飞的语音合成技术
-    要使用本模块, 请先在 profile.xml 中启用本模块并选择合适的发音人.
+    要使用本模块, 请先在 profile.yml 中启用本模块并选择合适的发音人.
     """
 
     SLUG = "iflytek-tts"
 
-    def __init__(self, vid='60170'):
+    def __init__(self, vid='60170', **args):
+        super(self.__class__, self).__init__()
         self._logger = logging.getLogger(__name__)
         self.vid = vid
 
     @classmethod
     def get_config(cls):
-        # FIXME: Replace this as soon as we have a config module
-        config = {}
         # Try to get iflytek_yuyin config from config
-        profile_path = dingdangpath.config('profile.yml')
-        if os.path.exists(profile_path):
-            with open(profile_path, 'r') as f:
-                profile = yaml.safe_load(f)
-                if 'iflytek_yuyin' in profile:
-                    if 'vid' in profile['iflytek_yuyin']:
-                        config['vid'] = \
-                            profile['iflytek_yuyin']['vid']
-        return config
+        return config.get('iflytek_yuyin', {})
 
     @classmethod
     def is_available(cls):
@@ -326,12 +307,13 @@ class IFlyTekTTS(AbstractMp3TTSEngine):
 class ALiBaBaTTS(AbstractMp3TTSEngine):
     """
     使用阿里云的语音合成技术
-    要使用本模块, 请先在 profile.xml 中启用本模块并选择合适的发音人.
+    要使用本模块, 请先在 profile.yml 中启用本模块并选择合适的发音人.
     """
 
     SLUG = "ali-tts"
 
-    def __init__(self, ak_id, ak_secret, voice_name='xiaoyun'):
+    def __init__(self, ak_id, ak_secret, voice_name='xiaoyun', **args):
+        super(self.__class__, self).__init__()
         self._logger = logging.getLogger(__name__)
         self.ak_id = ak_id
         self.ak_secret = ak_secret
@@ -339,24 +321,8 @@ class ALiBaBaTTS(AbstractMp3TTSEngine):
 
     @classmethod
     def get_config(cls):
-        # FIXME: Replace this as soon as we have a config module
-        config = {}
         # Try to get ali_yuyin config from config
-        profile_path = dingdangpath.config('profile.yml')
-        if os.path.exists(profile_path):
-            with open(profile_path, 'r') as f:
-                profile = yaml.safe_load(f)
-                if 'ali_yuyin' in profile:
-                    if 'ak_id' in profile['ali_yuyin']:
-                        config['ak_id'] = \
-                            profile['ali_yuyin']['ak_id']
-                    if 'ak_secret' in profile['ali_yuyin']:
-                        config['ak_secret'] = \
-                            profile['ali_yuyin']['ak_secret']
-                    if 'voice_name' in profile['ali_yuyin']:
-                        config['voice_name'] = \
-                            profile['ali_yuyin']['voice_name']
-        return config
+        return config.get('ali_yuyin', {})
 
     @classmethod
     def is_available(cls):
@@ -425,7 +391,7 @@ class GoogleTTS(AbstractMp3TTSEngine):
 
     SLUG = "google-tts"
 
-    def __init__(self, language='en'):
+    def __init__(self, language='en', **args):
         super(self.__class__, self).__init__()
         self.language = language
 
@@ -437,19 +403,8 @@ class GoogleTTS(AbstractMp3TTSEngine):
 
     @classmethod
     def get_config(cls):
-        # FIXME: Replace this as soon as we have a config module
-        config = {}
-        # HMM dir
-        # Try to get hmm_dir from config
-        profile_path = dingdangpath.config('profile.yml')
-        if os.path.exists(profile_path):
-            with open(profile_path, 'r') as f:
-                profile = yaml.safe_load(f)
-                if ('google_yuyin' in profile and
-                   'language' in profile['google_yuyin']):
-                    config['language'] = profile['google_yuyin']['language']
-
-        return config
+        # Try to get google_yuyin from config
+        return config.get('google_yuyin', {})
 
     @property
     def languages(self):

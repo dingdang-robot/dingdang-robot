@@ -16,8 +16,7 @@ class TestBrain():
     @staticmethod
     def _emptyBrain():
         mic = test_mic.Mic([])
-        profile = DEFAULT_PROFILE
-        return brain.Brain(mic, profile)
+        return brain.Brain(mic)
 
     def testSortByPriority(self):
         """Does Brain sort plugins by priority?"""

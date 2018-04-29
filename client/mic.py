@@ -13,29 +13,25 @@ import pyaudio
 from . import dingdangpath
 from . import mute_alsa
 from .app_utils import wechatUser
+from . import config
 
 
 class Mic:
     speechRec = None
     speechRec_persona = None
 
-    def __init__(self, profile, speaker, passive_stt_engine,
-                 active_stt_engine):
+    def __init__(self, speaker, passive_stt_engine, active_stt_engine):
         """
         Initiates the pocketsphinx instance.
 
         Arguments:
-        profile -- config profile
         speaker -- handles platform-independent audio output
         passive_stt_engine -- performs STT while Dingdang is in passive listen
                               mode
         acive_stt_engine -- performs STT while Dingdang is in active listen
                             mode
         """
-        self.profile = profile
-        self.robot_name = u'叮当'
-        if 'robot_name_cn' in profile:
-            self.robot_name = profile['robot_name_cn']
+        self.robot_name = config.get('robot_name_cn', u'叮当')
         self._logger = logging.getLogger(__name__)
         self.speaker = speaker
         self.wxbot = None
@@ -147,7 +143,7 @@ class Mic:
         frames = []
 
         # stores the lastN score values
-        lastN = [i for i in range(30)]
+        lastN = list(range(30))
 
         didDetect = False
 
@@ -196,7 +192,7 @@ class Mic:
 
         # no use continuing if no flag raised
         if not didDetect:
-            self._logger.debug("没接收到唤醒指令")
+            self._logger.debug(u"没接收到唤醒指令")
             try:
                 # self.stop_passive = False
                 stream.stop_stream()
@@ -204,7 +200,7 @@ class Mic:
             except Exception as e:
                 self._logger.debug(e)
                 pass
-            return (None, None)
+            return None, None
 
         # cutoff any recording before this disturbance was detected
         frames = frames[-20:]
@@ -236,9 +232,9 @@ class Mic:
 
         if transcribed is not None and \
            any(PERSONA in phrase for phrase in transcribed):
-            return (THRESHOLD, PERSONA)
+            return THRESHOLD, PERSONA
 
-        return (False, transcribed)
+        return False, transcribed
 
     def activeListen(self, THRESHOLD=None, LISTEN=True, MUSIC=False):
         """
@@ -274,12 +270,10 @@ class Mic:
                                   input=True,
                                   frames_per_buffer=CHUNK)
 
-        self.speaker.play(dingdangpath.data('audio', 'beep_hi.wav'))
-
         frames = []
         # increasing the range # results in longer pause after command
         # generation
-        lastN = [THRESHOLD * 1.2 for i in range(40)]
+        lastN = [THRESHOLD * 1.2] * 40
 
         for i in range(0, RATE / CHUNK * LISTEN_TIME):
             try:
@@ -298,8 +292,6 @@ class Mic:
             except Exception as e:
                 self._logger.error(e)
                 continue
-
-        self.speaker.play(dingdangpath.data('audio', 'beep_lo.wav'))
 
         # save the audio data
         try:
@@ -326,7 +318,7 @@ class Mic:
         self._logger.info(u"机器人说：%s" % phrase)
         self.stop_passive = True
         if self.wxbot is not None:
-            wechatUser(self.profile, self.wxbot, "%s: %s" %
+            wechatUser(config.get(), self.wxbot, "%s: %s" %
                        (self.robot_name, phrase), "")
         # incase calling say() method which
         # have not implement cache feature yet.
