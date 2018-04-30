@@ -92,6 +92,8 @@ def init_plugins():
             return m.PRIORITY
         return 0
     _plugins_query.sort(key=sort_priority, reverse=True)
+    _plugins_before_listen.sort(key=sort_priority, reverse=True)
+    _plugins_after_listen.sort(key=sort_priority, reverse=True)
     _has_init = True
 
 
