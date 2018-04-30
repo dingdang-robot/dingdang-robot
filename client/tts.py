@@ -77,15 +77,25 @@ class AbstractTTSEngine(object):
         pass
 
     def play(self, filename):
-        cmd = ['aplay', str(filename)]
+        """
+        The method has deprecated, use 'mic.Mic.play' instead.
+        play wave by aplay
+        """
+        self._logger.warning("The 'play' method is deprecated, "
+                             "use 'mic.play' instead")
+        cmd = ['aplay', '-q', str(filename)]
         self._logger.debug('Executing %s', ' '.join([pipes.quote(arg)
                                                      for arg in cmd]))
-        with tempfile.TemporaryFile() as f:
-            subprocess.call(cmd, stdout=f, stderr=f)
-            f.seek(0)
-            output = f.read()
-            if output:
-                self._logger.debug("Output was: '%s'", output)
+
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+        p.wait()
+        output = p.stdout.read()
+        if output:
+            self._logger.debug("play Output was: '%s'", output)
+        error = p.stderr.read()
+        if error:
+            self._logger.error("play error: '%s'", error)
 
 
 class AbstractMp3TTSEngine(AbstractTTSEngine):

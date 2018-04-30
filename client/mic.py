@@ -10,6 +10,7 @@ import wave
 import audioop
 import time
 import pyaudio
+import threading
 from . import dingdangpath
 from . import mute_alsa
 from .app_utils import wechatUser
@@ -332,4 +333,25 @@ class Mic:
 
     def play(self, src):
         # play a voice
-        self.speaker.play(src)
+
+        CHUNK = 1024
+
+        logging.debug("playing wave %s", src)
+        f = wave.open(src, "rb")
+        stream = self._audio.open(
+            format=self._audio.get_format_from_width(f.getsampwidth()),
+            channels=f.getnchannels(),
+            rate=f.getframerate(),
+            output=True)
+
+        data = f.readframes(CHUNK)
+        while data:
+            stream.write(data)
+            data = f.readframes(CHUNK)
+
+        stream.stop_stream()
+        stream.close()
+
+    def play_no_block(self, src):
+        t = threading.Thread(target=self.play, args=(src,))
+        t.start()

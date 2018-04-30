@@ -46,4 +46,4 @@ def beforeListen(mic, profile, wxbot=None):
 
 
 def afterListen(mic, profile, wxbot=None):
-    mic.play(dingdangpath.data('audio', 'beep_lo.wav'))
+    mic.play_no_block(dingdangpath.data('audio', 'beep_lo.wav'))
