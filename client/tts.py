@@ -97,8 +97,7 @@ class AbstractMp3TTSEngine(AbstractTTSEngine):
 
     def play_mp3(self, filename, remove=False):
         music = play.get_music_manager()
-        # music.play_block(filename)
-        music.play(filename)
+        music.play_block(filename)
 
     def removePunctuation(self, phrase):
         to_remove = [
