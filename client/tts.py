@@ -12,8 +12,6 @@ from __future__ import absolute_import
 import os
 import platform
 import tempfile
-import subprocess
-import pipes
 import logging
 import urllib
 import requests
@@ -31,6 +29,7 @@ import argparse
 from . import diagnose
 from . import dingdangpath
 from . import config
+from . import play
 
 try:
     import gtts
@@ -81,21 +80,8 @@ class AbstractTTSEngine(object):
         The method has deprecated, use 'mic.Mic.play' instead.
         play wave by aplay
         """
-        self._logger.warning("The 'play' method is deprecated, "
-                             "use 'mic.play' instead")
-        cmd = ['aplay', '-q', str(filename)]
-        self._logger.debug('Executing %s', ' '.join([pipes.quote(arg)
-                                                     for arg in cmd]))
-
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-        p.wait()
-        output = p.stdout.read()
-        if output:
-            self._logger.debug("play Output was: '%s'", output)
-        error = p.stderr.read()
-        if error:
-            self._logger.error("play error: '%s'", error)
+        sound = play.get_sound_manager()
+        sound.play_block(filename)
 
 
 class AbstractMp3TTSEngine(AbstractTTSEngine):
@@ -110,16 +96,9 @@ class AbstractMp3TTSEngine(AbstractTTSEngine):
                 diagnose.check_python_import('mad'))
 
     def play_mp3(self, filename, remove=False):
-        cmd = ['play', str(filename)]
-        self._logger.debug('Executing %s', ' '.join([pipes.quote(arg)
-                                                     for arg in cmd]))
-        with tempfile.TemporaryFile() as f:
-            p = subprocess.Popen(cmd, stdout=f, stderr=f)
-            p.wait()
-            f.seek(0)
-            output = f.read()
-            if output:
-                self._logger.debug("Output was: '%s'", output)
+        music = play.get_music_manager()
+        # music.play_block(filename)
+        music.play(filename)
 
     def removePunctuation(self, phrase):
         to_remove = [
@@ -155,20 +134,6 @@ class AbstractMp3TTSEngine(AbstractTTSEngine):
     def get_speech(self, phrase):
         # The subclass needs to implement
         return None
-
-
-class SimpleMp3Player(AbstractMp3TTSEngine):
-    """
-    MP3 player for playing mp3 files
-    """
-    SLUG = "mp3-player"
-
-    @classmethod
-    def is_available(cls):
-        return True
-
-    def say(self, phrase, cache=False):
-        self._logger.info(phrase)
 
 
 class BaiduTTS(AbstractMp3TTSEngine):
