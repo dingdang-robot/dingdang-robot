@@ -7,6 +7,7 @@ import sys
 import logging
 import argparse
 import threading
+import traceback
 from client import tts
 from client import stt
 from client import dingdangpath
@@ -128,8 +129,19 @@ if __name__ == "__main__":
 
     try:
         app = Dingdang()
-    except Exception:
-        logger.error("Error occured!", exc_info=True)
+    except:
+        logger.exception("Error occured!")
         sys.exit(1)
 
-    app.run()
+    try:
+        app.run()
+    except KeyboardInterrupt:
+        logger.info("dingdang get Keyboard Interrupt, exit.")
+        print("dingdang exit.")
+    except:
+        logger.exception("dingdang quit unexpectedly!")
+        if not args.verbose:
+            msg = traceback.format_exc()
+            print("** dingdang quit unexpectedly! ** ")
+            print(msg)
+        sys.exit(1)
