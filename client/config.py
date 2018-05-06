@@ -37,6 +37,34 @@ def init(config_name='profile.yml'):
         raise
 
 
+def get_path(items, default=None):
+    global _config
+    curConfig = _config
+    if isinstance(items, str) and items[0] == '/':
+        items = items.split('/')[1:]
+    for key in items:
+        if key in curConfig:
+            curConfig = curConfig[key]
+        else:
+            _logger.warning("/%s not specified in profile, defaulting to "
+                            "'%s'", '/'.join(items), default)
+            return default
+    return curConfig
+
+
+def has_path(items):
+    global _config
+    curConfig = _config
+    if isinstance(items, str) and items[0] == '/':
+        items = items.split('/')[1:]
+    for key in items:
+        if key in curConfig:
+            curConfig = curConfig[key]
+        else:
+            return False
+    return True
+
+
 def has(item):
     return item in _config
 
@@ -44,6 +72,8 @@ def has(item):
 def get(item='', default=None):
     if not item:
         return _config
+    if item[0] == '/':
+        return get_path(item, default)
     try:
         return _config[item]
     except KeyError:
