@@ -16,6 +16,10 @@ _logger = logging.getLogger(__name__)
 _sound_instance = None
 _music_instance = None
 
+# the vlc.MediaPlayer can't free memory automatically,
+# must use only one instance
+_vlc_media_player = None
+
 
 class AbstractSoundPlay(threading.Thread):
 
@@ -189,9 +193,13 @@ class VlcMusicPlay(AbstractMusicPlay):
 
     def __init__(self, src, **kwargs):
         import vlc
+        global _vlc_media_player
         super(VlcMusicPlay, self).__init__(**kwargs)
+        if not _vlc_media_player:
+            _vlc_media_player = vlc.MediaPlayer()
+        self.media_player = _vlc_media_player
         self.src = src
-        self.media = vlc.MediaPlayer(src)
+        self.media_player.set_media(vlc.Media(src))
         self.played = False
 
     def run(self):
@@ -200,28 +208,28 @@ class VlcMusicPlay(AbstractMusicPlay):
     def play(self):
         _logger.debug('vlc play %s', self.src)
         self.played = True
-        self.media.play()
+        self.media_player.play()
 
     def play_block(self):
         _logger.debug('vlc play_block %s', self.src)
-        self.media.play()
+        self.media_player.play()
         time.sleep(0.4)
-        while self.media.is_playing():
+        while self.media_player.is_playing():
             time.sleep(0.1)
 
     def stop(self):
-        self.media.stop()
+        self.media_player.stop()
 
     def is_playing(self):
-        return self.media.is_playing() == 1
+        return self.media_player.is_playing() == 1
 
     def pause(self):
-        self.media.pause()
+        self.media_player.pause()
 
     def wait(self):
         if self.played:
             time.sleep(0.4)
-            while self.media.is_playing():
+            while self.media_player.is_playing():
                 time.sleep(0.1)
 
 
