@@ -129,7 +129,7 @@ if __name__ == "__main__":
 
     try:
         app = Dingdang()
-    except:
+    except Exception:
         logger.exception("Error occured!")
         sys.exit(1)
 
@@ -138,7 +138,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         logger.info("dingdang get Keyboard Interrupt, exit.")
         print("dingdang exit.")
-    except:
+    except Exception:
         logger.exception("dingdang quit unexpectedly!")
         if not args.verbose:
             msg = traceback.format_exc()

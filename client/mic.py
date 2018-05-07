@@ -15,6 +15,7 @@ from . import mute_alsa
 from .app_utils import wechatUser
 from . import config
 from . import play
+from . import plugin_loader
 
 
 class Mic:
@@ -256,6 +257,7 @@ class Mic:
 
             Returns a list of the matching options or None
         """
+        self.beforeListenEvent()
 
         RATE = 16000
         CHUNK = 1024
@@ -277,7 +279,7 @@ class Mic:
         # generation
         lastN = [THRESHOLD * 1.2] * 40
 
-        for i in range(0, RATE / CHUNK * LISTEN_TIME):
+        for i in range(0, int(RATE / CHUNK * LISTEN_TIME)):
             try:
                 data = stream.read(CHUNK, exception_on_overflow=False)
                 frames.append(data)
@@ -295,6 +297,8 @@ class Mic:
                 self._logger.error(e)
                 continue
 
+        self.endListenEvent()
+
         # save the audio data
         try:
             stream.stop_stream()
@@ -311,8 +315,35 @@ class Mic:
             wav_fp.writeframes(''.join(frames))
             wav_fp.close()
             f.seek(0)
-            frames = []
             return self.active_stt_engine.transcribe(f)
+
+    def beforeListenEvent(self):
+        # run plugins before listen
+        for plugin in plugin_loader.get_plugins_before_listen():
+            continueHandle = False
+            try:
+                continueHandle = plugin.beforeListen(
+                    self, config.get(), self.wxbot)
+            except Exception:
+                self._logger.error("plugin '%s' run error",
+                                   plugin.__name__, exc_info=True)
+            finally:
+                if not continueHandle:
+                    break
+
+    def endListenEvent(self):
+        # run plugins after listen
+        for plugin in plugin_loader.get_plugins_after_listen():
+            continueHandle = False
+            try:
+                continueHandle = plugin.afterListen(
+                    self, config.get(), self.wxbot)
+            except Exception:
+                self._logger.error("plugin '%s' run error",
+                                   plugin.__name__, exc_info=True)
+            finally:
+                if not continueHandle:
+                    break
 
     def say(self, phrase,
             OPTIONS=" -vdefault+m3 -p 40 -s 160 --stdout > say.wav",
