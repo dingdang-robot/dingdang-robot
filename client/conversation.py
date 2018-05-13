@@ -78,7 +78,7 @@ class Conversation(object):
                 if not self.mic.chatting_mode:
                     self.mic.skip_passive = False
                 continue
-            pixels.wakeup()            
+            pixels.wakeup()
 
             self._logger.debug("Started to listen actively with threshold: %r",
                                threshold)

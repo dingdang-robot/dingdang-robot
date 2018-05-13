@@ -200,7 +200,7 @@ class Emotibot(AbstractRobot):
                 else:
                     self.mic.say(u'抱歉，%s发送失败了！' % target, cache=True)
             else:
-                self.mic.say(result, cache=True)
+                self.mic.say(result, cache=False)
             if result.endswith('?') or result.endswith(u'？') or \
                u'告诉我' in result or u'请回答' in result:
                 self.mic.skip_passive = True

@@ -14,7 +14,6 @@ from . import dingdangpath
 from . import mute_alsa
 from .app_utils import wechatUser
 from .drivers.pixels import pixels
-from . import plugin_loader
 from . import config
 
 
