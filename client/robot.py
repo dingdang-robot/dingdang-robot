@@ -55,7 +55,7 @@ class TulingRobot(AbstractRobot):
         if 'tuling' in self.profile:
             if 'tuling_key' in self.profile['tuling']:
                 tuling_key = \
-                        self.profile['tuling']['tuling_key']
+                    self.profile['tuling']['tuling_key']
         return tuling_key
 
     def chat(self, texts):
@@ -81,7 +81,7 @@ class TulingRobot(AbstractRobot):
             elif respond['code'] == 302000:
                 for k in respond['list']:
                     result = result + u"【" + k['source'] + u"】 " +\
-                             k['article'] + "\t" + k['detailurl'] + "\n"
+                        k['article'] + "\t" + k['detailurl'] + "\n"
             else:
                 result = respond['text'].replace('<br>', '  ')
                 result = result.replace(u'\xa0', u' ')
@@ -130,15 +130,15 @@ class Emotibot(AbstractRobot):
         if 'emotibot' in self.profile:
             if 'appid' in self.profile['emotibot']:
                 appid = \
-                        self.profile['emotibot']['appid']
+                    self.profile['emotibot']['appid']
             if 'location' in self.profile:
                 location = \
-                        self.profile['location']
+                    self.profile['location']
             else:
                 location = None
             if 'active_mode' in self.profile['emotibot']:
                 more = \
-                        self.profile['emotibot']['active_mode']
+                    self.profile['emotibot']['active_mode']
             else:
                 more = False
         return (appid, location, more)
@@ -200,7 +200,7 @@ class Emotibot(AbstractRobot):
                 else:
                     self.mic.say(u'抱歉，%s发送失败了！' % target, cache=True)
             else:
-                self.mic.say(result, cache=True)
+                self.mic.say(result)
             if result.endswith('?') or result.endswith(u'？') or \
                u'告诉我' in result or u'请回答' in result:
                 self.mic.skip_passive = True
