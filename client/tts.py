@@ -12,25 +12,28 @@ from __future__ import absolute_import
 import os
 import platform
 import tempfile
-import subprocess
-import pipes
 import logging
-import urllib
 import requests
 import datetime
 import base64
 import hmac
 import hashlib
-import md5
+import json
+import time
 from dateutil import parser as dparser
 from abc import ABCMeta, abstractmethod
 from uuid import getnode as get_mac
+try:
+    import urllib.parse as parse
+except ImportError:
+    import urllib as parse
 
 import argparse
 
 from . import diagnose
 from . import dingdangpath
 from . import config
+from . import play
 
 try:
     import gtts
@@ -77,15 +80,12 @@ class AbstractTTSEngine(object):
         pass
 
     def play(self, filename):
-        cmd = ['aplay', str(filename)]
-        self._logger.debug('Executing %s', ' '.join([pipes.quote(arg)
-                                                     for arg in cmd]))
-        with tempfile.TemporaryFile() as f:
-            subprocess.call(cmd, stdout=f, stderr=f)
-            f.seek(0)
-            output = f.read()
-            if output:
-                self._logger.debug("Output was: '%s'", output)
+        """
+        The method has deprecated, use 'mic.Mic.play' instead.
+        play wave by aplay
+        """
+        sound = play.get_sound_manager()
+        sound.play_block(filename)
 
 
 class AbstractMp3TTSEngine(AbstractTTSEngine):
@@ -100,16 +100,8 @@ class AbstractMp3TTSEngine(AbstractTTSEngine):
                 diagnose.check_python_import('mad'))
 
     def play_mp3(self, filename, remove=False):
-        cmd = ['play', str(filename)]
-        self._logger.debug('Executing %s', ' '.join([pipes.quote(arg)
-                                                     for arg in cmd]))
-        with tempfile.TemporaryFile() as f:
-            p = subprocess.Popen(cmd, stdout=f, stderr=f)
-            p.wait()
-            f.seek(0)
-            output = f.read()
-            if output:
-                self._logger.debug("Output was: '%s'", output)
+        music = play.get_music_manager()
+        music.play_block(filename)
 
     def removePunctuation(self, phrase):
         to_remove = [
@@ -122,9 +114,11 @@ class AbstractMp3TTSEngine(AbstractTTSEngine):
 
     def say(self, phrase, cache=False):
         self._logger.debug(u"Saying '%s' with '%s'", phrase, self.SLUG)
+        h = hashlib.md5()
+        h.update(phrase)
         cache_file_path = os.path.join(
             dingdangpath.TEMP_PATH,
-            self.SLUG + md5.new(phrase).hexdigest() + '.mp3'
+            self.SLUG + h.hexdigest() + '.mp3'
         )
         if cache and os.path.exists(cache_file_path):
             self._logger.info(
@@ -145,20 +139,6 @@ class AbstractMp3TTSEngine(AbstractTTSEngine):
     def get_speech(self, phrase):
         # The subclass needs to implement
         return None
-
-
-class SimpleMp3Player(AbstractMp3TTSEngine):
-    """
-    MP3 player for playing mp3 files
-    """
-    SLUG = "mp3-player"
-
-    @classmethod
-    def is_available(cls):
-        return True
-
-    def say(self, phrase, cache=False):
-        self._logger.info(phrase)
 
 
 class BaiduTTS(AbstractMp3TTSEngine):
@@ -209,9 +189,9 @@ class BaiduTTS(AbstractMp3TTSEngine):
         finally:
             cache.close()
         URL = 'http://openapi.baidu.com/oauth/2.0/token'
-        params = urllib.urlencode({'grant_type': 'client_credentials',
-                                   'client_id': self.api_key,
-                                   'client_secret': self.secret_key})
+        params = parse.urlencode({'grant_type': 'client_credentials',
+                                  'client_id': self.api_key,
+                                  'client_secret': self.secret_key})
         r = requests.get(URL, params=params)
         try:
             r.raise_for_status()
@@ -265,43 +245,71 @@ class IFlyTekTTS(AbstractMp3TTSEngine):
 
     SLUG = "iflytek-tts"
 
-    def __init__(self, vid='60170', **args):
+    def __init__(self, api_id, api_key, proxy='', voice_name='xiaoyan',
+                 speed='50', volume='80', pitch='50', **args):
         super(self.__class__, self).__init__()
         self._logger = logging.getLogger(__name__)
-        self.vid = vid
+        self.api_id = api_id
+        self.api_key = api_key
+        self.proxy = proxy
+        self.voice_name = voice_name
+        self.speed = str(speed)
+        self.volume = str(volume)
+        self.pitch = str(pitch)
 
     @classmethod
     def get_config(cls):
         # Try to get iflytek_yuyin config from config
-        return config.get('iflytek_yuyin', {})
+        param = config.get('/iflytek_yuyin/tts', {})
+        if 'api_id' not in param or not param['api_id']:
+            param['api_id'] = config.get('/iflytek_yuyin/api_id')
+        return param
 
     @classmethod
     def is_available(cls):
         return diagnose.check_network_connection()
 
-    def split_sentences(self, text):
-        punctuations = ['.', '。', ';', '；', '\n']
-        for i in punctuations:
-            text = text.replace(i, '@@@')
-        return text.split('@@@')
-
     def get_speech(self, phrase):
-        getinfo_url = 'http://www.peiyinge.com/make/getSynthSign'
-        voice_baseurl = 'http://proxy.peiyinge.com:17063/synth?ts='
-        data = {
-            'content': phrase.encode('utf8')
+        url = 'http://api.xfyun.cn/v1/service/v1/tts'
+        param = {
+            'auf': 'audio/L16;rate=16000',
+            'aue': 'lame',
+            'voice_name': self.voice_name,
+            'speed': self.speed,
+            'volume': self.volume,
+            'pitch': self.pitch
         }
-        result_info = requests.post(getinfo_url, data=data).json()
-        content = urllib.quote(phrase.encode('utf8'))
-        ts = result_info['ts']
-        sign = result_info['sign']
-        voice_url = voice_baseurl + ts + '&sign=' + sign + \
-            '&vid=' + self.vid + '&volume=&speed=0&content=' + content
-        r = requests.get(voice_url)
+        xparam = base64.b64encode(json.dumps(param))
+        curTime = str(int(time.time()))
+        h = hashlib.md5()
+        h.update(self.api_key + curTime + xparam)
+        header = {
+            'X-Appid': self.api_id,
+            'X-CurTime': curTime,
+            'X-Param': xparam,
+            'X-CheckSum': h.hexdigest(),
+            'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8'
+        }
+        data = {
+            'text': phrase.encode('utf8')
+        }
+        if self.proxy:
+            session = requests.session()
+            session.proxies = {
+                'http': self.proxy,
+                'https': self.proxy
+            }
+            resp = session.post(url, data=parse.urlencode(data),
+                                headers=header, )
+        else:
+            resp = requests.post(url, data=parse.urlencode(data),
+                                 headers=header)
+        if resp.headers['Content-Type'] != 'audio/mpeg':
+            self._logger.error("get tts by xunfei error, resp:%s", resp.text)
+            return None
         with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as f:
-            f.write(r.content)
-            tmpfile = f.name
-            return tmpfile
+            f.write(resp.content)
+            return f.name
 
 
 class ALiBaBaTTS(AbstractMp3TTSEngine):

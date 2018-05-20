@@ -4,7 +4,6 @@ import logging
 import time
 from .notifier import Notifier
 from .brain import Brain
-from . import plugin_loader
 from . import config
 from .drivers.pixels import Pixels
 
@@ -93,38 +92,13 @@ class Conversation(object):
             self._logger.debug("Started to listen actively with threshold: %r",
                                threshold)
 
-            # run plugins before listen
-            for plugin in plugin_loader.get_plugins_before_listen():
-                continueHandle = False
-                try:
-                    continueHandle = plugin.beforeListen(
-                        self.mic, config.get(), self.wxbot)
-                except Exception:
-                    self._logger.error("plugin '%s' run error",
-                                       plugin.__name__, exc_info=True)
-                finally:
-                    if not continueHandle:
-                        break
-
             input = self.mic.activeListenToAllOptions(threshold)
             self._logger.debug("Stopped to listen actively with threshold: %r",
                                threshold)
 
-            # run plugins after listen
-            for plugin in plugin_loader.get_plugins_after_listen():
-                continueHandle = False
-                try:
-                    continueHandle = plugin.afterListen(
-                        self.mic, config.get(), self.wxbot)
-                except Exception:
-                    self._logger.error("plugin '%s' run error",
-                                       plugin.__name__, exc_info=True)
-                finally:
-                    if not continueHandle:
-                        break
-
             if self.pixels:
                 self.pixels.think()
+
             if input:
                 self.brain.query(input, self.wxbot)
             elif config.get('shut_up_if_no_input', False):

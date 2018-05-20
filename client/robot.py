@@ -169,7 +169,8 @@ class Emotibot(AbstractRobot):
                 if self.more:
                     datas = jsondata.get('data')
                     for data in datas:
-                        responds.append(data.get('value'))
+                        if data.get('type') == 'text':
+                            responds.append(data.get('value'))
                 else:
                     responds.append(jsondata.get('data')[0].get('value'))
                 result = '\n'.join(responds)
