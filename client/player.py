@@ -21,10 +21,10 @@ _music_instance = None
 _vlc_media_player = None
 
 
-class AbstractSoundPlay(threading.Thread):
+class AbstractSoundPlayer(threading.Thread):
 
     def __init__(self, **kwargs):
-        super(AbstractSoundPlay, self).__init__()
+        super(AbstractSoundPlayer, self).__init__()
 
     def play(self):
         pass
@@ -39,12 +39,12 @@ class AbstractSoundPlay(threading.Thread):
         return False
 
 
-class AudioSoundPlay(AbstractSoundPlay):
+class AudioSoundPlayer(AbstractSoundPlayer):
     SLUG = 'pyaudio'
 
     def __init__(self, src, audio=None, **kwargs):
         import pyaudio
-        super(AudioSoundPlay, self).__init__(**kwargs)
+        super(AudioSoundPlayer, self).__init__(**kwargs)
         if not audio:
             self.audio = pyaudio.PyAudio()
         else:
@@ -88,11 +88,11 @@ class AudioSoundPlay(AbstractSoundPlay):
         return self.playing
 
 
-class ShellSoundPlay(AbstractSoundPlay):
+class ShellSoundPlayer(AbstractSoundPlayer):
     SLUG = 'aplay'
 
     def __init__(self, src, **kwargs):
-        super(ShellSoundPlay, self).__init__(**kwargs)
+        super(ShellSoundPlayer, self).__init__(**kwargs)
         self.src = src
         self.playing = False
         self.pipe = None
@@ -130,10 +130,10 @@ class ShellSoundPlay(AbstractSoundPlay):
         return self.playing
 
 
-class AbstractMusicPlay(threading.Thread):
+class AbstractMusicPlayer(threading.Thread):
 
     def __init__(self, **kwargs):
-        super(AbstractMusicPlay, self).__init__()
+        super(AbstractMusicPlayer, self).__init__()
 
     def play(self):
         pass
@@ -151,11 +151,11 @@ class AbstractMusicPlay(threading.Thread):
         pass
 
 
-class ShellMusicPlay(AbstractMusicPlay):
+class ShellMusicPlayer(AbstractMusicPlayer):
     SLUG = 'play'
 
     def __init__(self, src, **kwargs):
-        super(ShellMusicPlay, self).__init__(**kwargs)
+        super(ShellMusicPlayer, self).__init__(**kwargs)
         self.src = src
         self.playing = False
         self.pipe = None
@@ -188,13 +188,13 @@ class ShellMusicPlay(AbstractMusicPlay):
         return self.playing
 
 
-class VlcMusicPlay(AbstractMusicPlay):
+class VlcMusicPlayer(AbstractMusicPlayer):
     SLUG = 'vlc'
 
     def __init__(self, src, **kwargs):
         import vlc
         global _vlc_media_player
-        super(VlcMusicPlay, self).__init__(**kwargs)
+        super(VlcMusicPlayer, self).__init__(**kwargs)
         if not _vlc_media_player:
             _vlc_media_player = vlc.MediaPlayer()
         self.media_player = _vlc_media_player
@@ -233,12 +233,12 @@ class VlcMusicPlay(AbstractMusicPlay):
                 time.sleep(0.1)
 
 
-class PyGameMusicPlay(AbstractMusicPlay):
+class PyGameMusicPlayer(AbstractMusicPlayer):
     SLUG = 'pygame'
 
     def __init__(self, src, **kwargs):
         import pygame
-        super(PyGameMusicPlay, self).__init__(**kwargs)
+        super(PyGameMusicPlayer, self).__init__(**kwargs)
         self.src = src
         self.played = False
         pygame.mixer.music.load(self.src)
@@ -286,7 +286,7 @@ class PyGameMusicPlay(AbstractMusicPlay):
 class Sound(object):
 
     def __init__(self, slug, audio=None):
-        for sound_engine in get_subclasses(AbstractSoundPlay):
+        for sound_engine in get_subclasses(AbstractSoundPlayer):
             if hasattr(sound_engine, 'SLUG') and sound_engine.SLUG == slug:
                 self.slug = slug
                 self.sound_engine = sound_engine
@@ -316,7 +316,7 @@ class Sound(object):
 class Music(object):
 
     def __init__(self, slug):
-        for music_engine in get_subclasses(AbstractMusicPlay):
+        for music_engine in get_subclasses(AbstractMusicPlayer):
             if hasattr(music_engine, 'SLUG') and music_engine.SLUG == slug:
                 self.slug = slug
                 self.music_engine = music_engine

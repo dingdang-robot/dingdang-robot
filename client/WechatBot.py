@@ -7,7 +7,7 @@ from client.wxbot import WXBot
 
 from client import dingdangpath
 from client.audio_utils import mp3_to_wav
-from client import play
+from client import player
 
 
 class WechatBot(WXBot):
@@ -62,8 +62,7 @@ class WechatBot(WXBot):
                             mic.say("什么？")
                 else:
                     # 播放语音
-                    player = play.get_music_manager()
-                    player.play_block(mp3_file)
+                    player.get_music_manager().play_block(mp3_file)
         elif msg['msg_type_id'] == 4:
             if 'wechat_echo_text_friends' in profile and \
                (
@@ -82,5 +81,4 @@ class WechatBot(WXBot):
                  ) and msg['content']['type'] == 4:
                 mp3_file = os.path.join(dingdangpath.TEMP_PATH,
                                         'voice_%s.mp3' % msg['msg_id'])
-                player = play.get_music_manager()
-                player.play_block(mp3_file)
+                player.get_music_manager().play_block(mp3_file)

@@ -14,7 +14,7 @@ from . import dingdangpath
 from . import mute_alsa
 from .app_utils import wechatUser
 from . import config
-from . import play
+from . import player
 from . import plugin_loader
 
 
@@ -50,7 +50,7 @@ class Mic:
             pass
         self._audio = pyaudio.PyAudio()
         self._logger.info("Initialization of PyAudio completed.")
-        self.sound = play.get_sound_manager(self._audio)
+        self.sound = player.get_sound_manager(self._audio)
         self.stop_passive = False
         self.skip_passive = False
         self.chatting_mode = False

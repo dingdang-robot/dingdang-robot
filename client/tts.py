@@ -4,7 +4,7 @@ A Speaker handles audio output from Dingdang to the user
 
 Speaker methods:
     say - output 'phrase' as speech
-    play - play the audio in 'filename'
+    player - player the audio in 'filename'
     is_available - returns True if the platform supports this implementation
 """
 from __future__ import print_function
@@ -33,7 +33,7 @@ import argparse
 from . import diagnose
 from . import dingdangpath
 from . import config
-from . import play
+from . import player
 
 try:
     import gtts
@@ -84,7 +84,7 @@ class AbstractTTSEngine(object):
         The method has deprecated, use 'mic.Mic.play' instead.
         play wave by aplay
         """
-        sound = play.get_sound_manager()
+        sound = player.get_sound_manager()
         sound.play_block(filename)
 
 
@@ -100,7 +100,7 @@ class AbstractMp3TTSEngine(AbstractTTSEngine):
                 diagnose.check_python_import('mad'))
 
     def play_mp3(self, filename, remove=False):
-        music = play.get_music_manager()
+        music = player.get_music_manager()
         music.play_block(filename)
 
     def removePunctuation(self, phrase):
