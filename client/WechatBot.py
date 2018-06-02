@@ -8,6 +8,7 @@ from client.wxbot import WXBot
 from client import dingdangpath
 from client.audio_utils import mp3_to_wav
 from client import player
+from client import config
 
 
 class WechatBot(WXBot):
@@ -32,7 +33,7 @@ class WechatBot(WXBot):
 
     def handle_msg_all(self, msg):
         # ignore the msg when handling plugins
-        profile = self.brain.profile
+        profile = config.get()
         if (msg['msg_type_id'] == 1 and
            (msg['to_user_id'] == self.my_account['UserName'] or
                 msg['to_user_id'] == u'filehelper')):
