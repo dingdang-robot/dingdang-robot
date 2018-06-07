@@ -117,5 +117,5 @@ def get_plugins_after_listen():
 
 def check_thirdparty_exclude(mod):
     if mod.SLUG in _thirdparty_exclude_plugins:
-        return False
-    return True
+        return True
+    return False
