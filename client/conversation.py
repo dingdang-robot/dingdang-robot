@@ -6,6 +6,7 @@ from .notifier import Notifier
 from .brain import Brain
 from . import config
 from .drivers.pixels import Pixels
+from . import statistic
 
 
 class Conversation(object):
@@ -89,6 +90,9 @@ class Conversation(object):
 
             if self.pixels:
                 self.pixels.wakeup()
+
+            statistic.report(1)
+
             self._logger.debug("Started to listen actively with threshold: %r",
                                threshold)
 

@@ -15,6 +15,7 @@ from client import diagnose
 from client import WechatBot
 from client.conversation import Conversation
 from client import config
+from client import statistic
 
 # Add dingdangpath.LIB_PATH to sys.path
 sys.path.append(dingdangpath.LIB_PATH)
@@ -69,6 +70,8 @@ class Dingdang(object):
 
         persona = config.get("robot_name", 'DINGDANG')
         conversation = Conversation(persona, self.mic)
+
+        statistic.report(0)
 
         # create wechat robot
         if config.get('wechat', False):
