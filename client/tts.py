@@ -63,7 +63,6 @@ class AbstractTTSEngine(object):
     @classmethod
     def get_instance(cls):
         param = cls.get_config()
-        print(param)
         instance = cls(**param)
         return instance
 
