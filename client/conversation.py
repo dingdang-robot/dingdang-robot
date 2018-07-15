@@ -7,6 +7,7 @@ from .brain import Brain
 from .drivers.pixels import pixels
 from . import plugin_loader
 from . import config
+from . import statistic
 
 
 class Conversation(object):
@@ -79,6 +80,8 @@ class Conversation(object):
                     self.mic.skip_passive = False
                 continue
             pixels.wakeup()
+
+            statistic.report(1)
 
             self._logger.debug("Started to listen actively with threshold: %r",
                                threshold)
