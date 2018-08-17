@@ -6,33 +6,36 @@ import os
 import base64
 import wave
 import json
-import urlparse
 import tempfile
 import logging
 import urllib
 from abc import ABCMeta, abstractmethod
 import requests
+import yaml
 from . import dingdangpath
 from . import diagnose
 from . import vocabcompiler
-from . import config
 from uuid import getnode as get_mac
 import hashlib
 import datetime
 import hmac
 import sys
-import urllib3
 from dateutil import parser as dparser
 
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 try:
     reload         # Python 2
+    import urlparse
+    reload(sys)
+    # sys.setdefaultencoding('utf8')
 except NameError:  # Python 3
     from importlib import reload
+    from urllib import parse
 
 reload(sys)
-sys.setdefaultencoding('utf8')
+# sys.setdefaultencoding('utf8')
 
 
 class AbstractSTTEngine(object):
@@ -49,15 +52,15 @@ class AbstractSTTEngine(object):
 
     @classmethod
     def get_instance(cls, vocabulary_name, phrases):
-        profile = cls.get_config()
+        config = cls.get_config()
         if cls.VOCABULARY_TYPE:
             vocabulary = cls.VOCABULARY_TYPE(vocabulary_name,
                                              path=dingdangpath.config(
                                                  'vocabularies'))
             if not vocabulary.matches_phrases(phrases):
                 vocabulary.compile(phrases)
-            profile['vocabulary'] = vocabulary
-        instance = cls(**profile)
+            config['vocabulary'] = vocabulary
+        instance = cls(**config)
         return instance
 
     @classmethod
@@ -98,7 +101,7 @@ class PocketSphinxSTT(AbstractSTTEngine):
     VOCABULARY_TYPE = vocabcompiler.PocketsphinxVocabulary
 
     def __init__(self, vocabulary, hmm_dir="/usr/local/share/" +
-                 "pocketsphinx/model/hmm/en_US/hub4wsj_sc_8k", **kwargs):
+                 "pocketsphinx/model/hmm/en_US/hub4wsj_sc_8k"):
         """
         Initiates the pocketsphinx instance.
 
@@ -110,10 +113,11 @@ class PocketSphinxSTT(AbstractSTTEngine):
         self._logger = logging.getLogger(__name__)
 
         # quirky bug where first import doesn't work
-        try:
-            import pocketsphinx as ps
-        except Exception:
-            import pocketsphinx as ps
+        # try:
+        #     import pocketsphinx as ps
+        # except Exception:
+        #     import pocketsphinx as ps
+        from pocketsphinx import Pocketsphinx
 
         with tempfile.NamedTemporaryFile(prefix='psdecoder_',
                                          suffix='.log', delete=False) as f:
@@ -148,16 +152,37 @@ class PocketSphinxSTT(AbstractSTTEngine):
                                  "hmm_dir in your profile.",
                                  hmm_dir, ', '.join(missing_hmm_files))
 
-        self._decoder = ps.Decoder(hmm=hmm_dir, logfn=self._logfile,
-                                   **vocabulary.decoder_kwargs)
+        # self._decoder = ps.Decoder(hmm=hmm_dir, logfn=self._logfile,
+        #                            **vocabulary.decoder_kwargs)
+        config = {
+            'hmm': hmm_dir,
+            'logfn': self._logfile
+        }
+        config.update(**vocabulary.decoder_kwargs)
+
+        ps = Pocketsphinx(**config)
+        self._decoder = ps.decode()
 
     def __del__(self):
         os.remove(self._logfile)
 
     @classmethod
     def get_config(cls):
+        # FIXME: Replace this as soon as we have a config module
+        config = {}
+        # HMM dir
         # Try to get hmm_dir from config
-        return config.get('pocketsphinx', {})
+        profile_path = dingdangpath.config('profile.yml')
+
+        if os.path.exists(profile_path):
+            with open(profile_path, 'r') as f:
+                profile = yaml.safe_load(f)
+                try:
+                    config['hmm_dir'] = profile['pocketsphinx']['hmm_dir']
+                except KeyError:
+                    pass
+
+        return config
 
     def transcribe(self, fp):
         """
@@ -200,10 +225,15 @@ class PocketSphinxSTT(AbstractSTTEngine):
         self._decoder.start_utt()
         self._decoder.process_raw(data, False, True)
         self._decoder.end_utt()
-
-        result = self._decoder.get_hyp()
-
-        transcribed = [result[0]]
+        # try:
+        #     result = self._decoder.get_hyp()
+        #     transcribed = [result[0]]
+        # except:
+        result = self._decoder.hyp()
+        try:
+            transcribed = [result.hypstr]
+        except:
+            transcribed = ''
         self._logger.info('PocketSphinx 识别到了：%r', transcribed)
         return transcribed
 
@@ -227,7 +257,7 @@ class BaiduSTT(AbstractSTTEngine):
 
     SLUG = "baidu-stt"
 
-    def __init__(self, api_key, secret_key, **kwargs):
+    def __init__(self, api_key, secret_key):
         self._logger = logging.getLogger(__name__)
         self.api_key = api_key
         self.secret_key = secret_key
@@ -235,8 +265,21 @@ class BaiduSTT(AbstractSTTEngine):
 
     @classmethod
     def get_config(cls):
+        # FIXME: Replace this as soon as we have a config module
+        config = {}
         # Try to get baidu_yuyin config from config
-        return config.get('baidu_yuyin', {})
+        profile_path = dingdangpath.config('profile.yml')
+        if os.path.exists(profile_path):
+            with open(profile_path, 'r') as f:
+                profile = yaml.safe_load(f)
+                if 'baidu_yuyin' in profile:
+                    if 'api_key' in profile['baidu_yuyin']:
+                        config['api_key'] = \
+                            profile['baidu_yuyin']['api_key']
+                    if 'secret_key' in profile['baidu_yuyin']:
+                        config['secret_key'] = \
+                            profile['baidu_yuyin']['secret_key']
+        return config
 
     def get_token(self):
         cache = open(os.path.join(dingdangpath.TEMP_PATH, 'baidustt.ini'),
@@ -254,7 +297,7 @@ class BaiduSTT(AbstractSTTEngine):
         finally:
             cache.close()
         URL = 'http://openapi.baidu.com/oauth/2.0/token'
-        params = urllib.urlencode({'grant_type': 'client_credentials',
+        params = urllib.parse.urlencode({'grant_type': 'client_credentials',
                                    'client_id': self.api_key,
                                    'client_secret': self.secret_key})
         r = requests.get(URL, params=params)
@@ -286,7 +329,7 @@ class BaiduSTT(AbstractSTTEngine):
                 "token": self.token,
                 "len": len(audio),
                 "rate": frame_rate,
-                "speech": base_data,
+                "speech": base_data.decode('ascii'),
                 "cuid": str(get_mac())[:32],
                 "channel": 1}
         data = json.dumps(data)
@@ -297,7 +340,7 @@ class BaiduSTT(AbstractSTTEngine):
             r.raise_for_status()
             text = ''
             if 'result' in r.json():
-                text = r.json()['result'][0].encode('utf-8')
+                text = r.json()['result'][0]
         except requests.exceptions.HTTPError:
             self._logger.critical('Request failed with response: %r',
                                   r.text,
@@ -336,7 +379,7 @@ class IFlyTekSTT(AbstractSTTEngine):
 
     SLUG = "iflytek-stt"
 
-    def __init__(self, api_id, api_key, url, **kwargs):
+    def __init__(self, api_id, api_key, url):
         self._logger = logging.getLogger(__name__)
         self.api_id = api_id
         self.api_key = api_key
@@ -344,8 +387,24 @@ class IFlyTekSTT(AbstractSTTEngine):
 
     @classmethod
     def get_config(cls):
+        # FIXME: Replace this as soon as we have a config module
+        config = {}
         # Try to get iflytek_yuyin config from config
-        return config.get('iflytek_yuyin', {})
+        profile_path = dingdangpath.config('profile.yml')
+        if os.path.exists(profile_path):
+            with open(profile_path, 'r') as f:
+                profile = yaml.safe_load(f)
+                if 'iflytek_yuyin' in profile:
+                    if 'api_id' in profile['iflytek_yuyin']:
+                        config['api_id'] = \
+                            profile['iflytek_yuyin']['api_id']
+                    if 'api_key' in profile['iflytek_yuyin']:
+                        config['api_key'] = \
+                            profile['iflytek_yuyin']['api_key']
+                    if 'url' in profile['iflytek_yuyin']:
+                        config['url'] = \
+                            profile['iflytek_yuyin']['url']
+        return config
 
     def transcribe(self, fp):
         try:
@@ -418,15 +477,28 @@ class ALiBaBaSTT(AbstractSTTEngine):
 
     SLUG = "ali-stt"
 
-    def __init__(self, ak_id, ak_secret, **kwargs):
+    def __init__(self, ak_id, ak_secret):
         self._logger = logging.getLogger(__name__)
         self.ak_id = ak_id
         self.ak_secret = ak_secret
 
     @classmethod
     def get_config(cls):
+        # FIXME: Replace this as soon as we have a config module
+        config = {}
         # Try to get ali_yuyin config from config
-        return config.get('ali_yuyin', {})
+        profile_path = dingdangpath.config('profile.yml')
+        if os.path.exists(profile_path):
+            with open(profile_path, 'r') as f:
+                profile = yaml.safe_load(f)
+                if 'ali_yuyin' in profile:
+                    if 'ak_id' in profile['ali_yuyin']:
+                        config['ak_id'] = \
+                            profile['ali_yuyin']['ak_id']
+                    if 'ak_secret' in profile['ali_yuyin']:
+                        config['ak_secret'] = \
+                            profile['ali_yuyin']['ak_secret']
+        return config
 
     def to_md5_base64(self, strBody):
         hash = hashlib.md5()
@@ -437,7 +509,7 @@ class ALiBaBaSTT(AbstractSTTEngine):
         return hash.digest().encode('base64').strip()
 
     def to_sha1_base64(self, stringToSign, secret):
-        hmacsha1 = hmac.new(str(secret), str(stringToSign), hashlib.sha1)
+        hmacsha1 = hmac.new(secret, stringToSign, hashlib.sha1)
         return base64.b64encode(hmacsha1.digest())
 
     def transcribe(self, fp):
@@ -527,7 +599,7 @@ class SnowboySTT(AbstractSTTEngine):
 
     SLUG = "snowboy-stt"
 
-    def __init__(self, sensitivity, model, hotword, **kwargs):
+    def __init__(self, sensitivity, model, hotword):
         self._logger = logging.getLogger(__name__)
         self.sensitivity = sensitivity
         self.hotword = hotword
@@ -539,8 +611,8 @@ class SnowboySTT(AbstractSTTEngine):
         except Exception as e:
             self._logger.critical(e)
             if 'libf77blas.so' in e.message:
-                self._logger.critical("您可能需要安装一个so包加载库：sudo "
-                                      "apt-get install libatlas-base-dev")
+                self._logger.critical("您可能需要安装一个so包加载库：" +
+                                      "sudo apt-get install libatlas-base-dev")
             return
         self.detector = snowboydetect.SnowboyDetect(
             resource_filename=self.resource_file,
@@ -550,17 +622,30 @@ class SnowboySTT(AbstractSTTEngine):
 
     @classmethod
     def get_config(cls):
+        # FIXME: Replace this as soon as we have a config module
+        config = {}
         # Try to get snowboy config from config
-        profile = config.get('snowboy', {})
-
-        if 'model' not in profile:
-            profile['model'] = os.path.join(
-                dingdangpath.LIB_PATH, 'snowboy/dingdang.pmdl')
-        if 'sensitivity' not in profile:
-            profile['sensitivity'] = "0.5"
-        profile['hotword'] = config.get('hotword', 'DINGDANG')
-
-        return profile
+        profile_path = dingdangpath.config('profile.yml')
+        if os.path.exists(profile_path):
+            with open(profile_path, 'r') as f:
+                profile = yaml.safe_load(f)
+                if 'snowboy' in profile:
+                    if 'model' in profile['snowboy']:
+                        config['model'] = \
+                            profile['snowboy']['model']
+                    else:
+                        config['model'] = os.path.join(
+                            dingdangpath.LIB_PATH, 'snowboy/dingdang.pmdl')
+                    if 'sensitivity' in profile['snowboy']:
+                        config['sensitivity'] = \
+                            profile['snowboy']['sensitivity']
+                    else:
+                        config['sensitivity'] = "0.5"
+                    if 'robot_name' in profile:
+                        config['hotword'] = profile['robot_name']
+                    else:
+                        config['hotword'] = 'DINGDANG'
+        return config
 
     def transcribe(self, fp):
         fp.seek(44)
@@ -621,7 +706,7 @@ class GoogleSTT(AbstractSTTEngine):
 
     SLUG = 'google-stt'
 
-    def __init__(self, api_key=None, language='en-us', **kwargs):
+    def __init__(self, api_key=None, language='en-us'):
         # FIXME: get init args from config
         """
         Arguments:
@@ -673,8 +758,18 @@ class GoogleSTT(AbstractSTTEngine):
 
     @classmethod
     def get_config(cls):
+        # FIXME: Replace this as soon as we have a config module
+        config = {}
+        # HMM dir
         # Try to get hmm_dir from config
-        return config.get('google_yuyin', {})
+        profile_path = dingdangpath.config('profile.yml')
+        if os.path.exists(profile_path):
+            with open(profile_path, 'r') as f:
+                profile = yaml.safe_load(f)
+                if 'google_yuyin' in profile \
+                   and 'api_key' in profile['google_yuyin']:
+                    config['api_key'] = profile['google_yuyin']['api_key']
+        return config
 
     def transcribe(self, fp):
         """
@@ -750,8 +845,8 @@ def get_engine_by_slug(slug=None):
     if not slug or type(slug) is not str:
         raise TypeError("Invalid slug '%s'", slug)
 
-    selected_engines = filter(lambda engine: hasattr(engine, "SLUG") and
-                              engine.SLUG == slug, get_engines())
+    selected_engines = list(filter(lambda engine: hasattr(engine, "SLUG") and
+                              engine.SLUG == slug, get_engines()))
     if len(selected_engines) == 0:
         raise ValueError("No STT engine found for slug '%s'" % slug)
     else:

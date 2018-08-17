@@ -1,8 +1,12 @@
 # -*- coding: utf-8-*-
 from __future__ import print_function
 import smtplib
-from email.MIMEText import MIMEText
-from email.MIMEMultipart import MIMEMultipart
+try:
+    from email.MIMEText import MIMEText
+    from email.MIMEMultipart import MIMEMultipart
+except:
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
 import logging
 import os
 from pytz import timezone
@@ -99,6 +103,7 @@ def wechatUser(profile, wxbot, SUBJECT="", BODY="",
                 wxbot.send_file_msg_by_uid(fpath, user_id)
             for fpath in IMAGE_LIST:
                 wxbot.send_img_msg_by_uid(fpath, user_id)
+            return True
             return True
         except Exception as e:
             _logger.error(e)

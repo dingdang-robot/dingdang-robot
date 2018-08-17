@@ -18,8 +18,8 @@ import shutil
 from abc import ABCMeta, abstractmethod, abstractproperty
 import yaml
 
+from . import brain
 from . import dingdangpath
-from . import plugin_loader
 
 from .g2p import PhonetisaurusG2P
 try:
@@ -51,7 +51,7 @@ class AbstractVocabulary(object):
             A revision string for given phrases.
         """
         sorted_phrases = sorted(phrases)
-        joined_phrases = '\n'.join(sorted_phrases)
+        joined_phrases = '\n'.join(sorted_phrases).encode("utf-8")
         sha1 = hashlib.sha1()
         sha1.update(joined_phrases)
         return sha1.hexdigest()
@@ -119,7 +119,7 @@ class AbstractVocabulary(object):
             vocabulary.
 
         """
-        return self.compiled_revision == self.phrases_to_revision(phrases)
+        return (self.compiled_revision == self.phrases_to_revision(phrases))
 
     def compile(self, phrases, force=False):
         """
@@ -519,7 +519,7 @@ def get_all_phrases():
     """
     phrases = []
 
-    plugins = plugin_loader.get_plugins()
+    plugins = brain.Brain.get_plugins()
     for plugin in plugins:
         phrases.extend(get_phrases_from_plugin(plugin))
 

@@ -19,7 +19,10 @@ import random
 from . import dingdangpath
 from traceback import format_exc
 from requests.exceptions import ConnectionError, ReadTimeout
-import HTMLParser
+try:
+    import HTMLParser
+except:
+    from html.parser import HTMLParser
 
 UNKONWN = 'unkonwn'
 SUCCESS = '200'

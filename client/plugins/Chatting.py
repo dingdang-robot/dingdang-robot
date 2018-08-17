@@ -6,9 +6,12 @@ try:
 except NameError:  # Python 3
     from importlib import reload
 
-import sys
-reload(sys)
-sys.setdefaultencoding('utf8')
+try:
+    import sys
+    reload(sys)
+    sys.setdefaultencoding('utf8')
+except:
+    pass
 
 # Standard module stuff
 WORDS = ["XIANLIAO"]

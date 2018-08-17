@@ -13,27 +13,30 @@ import pyaudio
 from . import dingdangpath
 from . import mute_alsa
 from .app_utils import wechatUser
-from . import config
-from . import player
-from . import plugin_loader
+from .drivers.pixels import pixels
 
 
 class Mic:
     speechRec = None
     speechRec_persona = None
 
-    def __init__(self, speaker, passive_stt_engine, active_stt_engine):
+    def __init__(self, profile, speaker, passive_stt_engine,
+                 active_stt_engine):
         """
         Initiates the pocketsphinx instance.
 
         Arguments:
+        profile -- config profile
         speaker -- handles platform-independent audio output
         passive_stt_engine -- performs STT while Dingdang is in passive listen
                               mode
         acive_stt_engine -- performs STT while Dingdang is in active listen
                             mode
         """
-        self.robot_name = config.get('robot_name_cn', u'叮当')
+        self.profile = profile
+        self.robot_name = u'叮当'
+        if 'robot_name_cn' in profile:
+            self.robot_name = profile['robot_name_cn']
         self._logger = logging.getLogger(__name__)
         self.speaker = speaker
         self.wxbot = None
@@ -50,7 +53,6 @@ class Mic:
             pass
         self._audio = pyaudio.PyAudio()
         self._logger.info("Initialization of PyAudio completed.")
-        self.sound = player.get_sound_manager(self._audio)
         self.stop_passive = False
         self.skip_passive = False
         self.chatting_mode = False
@@ -146,12 +148,12 @@ class Mic:
         frames = []
 
         # stores the lastN score values
-        lastN = list(range(30))
+        lastN = [i for i in range(30)]
 
         didDetect = False
 
         # calculate the long run average, and thereby the proper threshold
-        for i in range(0, RATE / CHUNK * THRESHOLD_TIME):
+        for i in range(0, RATE // CHUNK * THRESHOLD_TIME):
 
             try:
                 if self.stop_passive:
@@ -175,7 +177,7 @@ class Mic:
                 pass
 
         # start passively listening for disturbance above threshold
-        for i in range(0, RATE / CHUNK * LISTEN_TIME):
+        for i in range(0, RATE // CHUNK * LISTEN_TIME):
 
             try:
                 if self.stop_passive:
@@ -195,7 +197,7 @@ class Mic:
 
         # no use continuing if no flag raised
         if not didDetect:
-            self._logger.debug(u"没接收到唤醒指令")
+            self._logger.debug("没接收到唤醒指令")
             try:
                 # self.stop_passive = False
                 stream.stop_stream()
@@ -203,14 +205,14 @@ class Mic:
             except Exception as e:
                 self._logger.debug(e)
                 pass
-            return None, None
+            return (None, None)
 
         # cutoff any recording before this disturbance was detected
         frames = frames[-20:]
 
         # otherwise, let's keep recording for few seconds and save the file
         DELAY_MULTIPLIER = 1
-        for i in range(0, RATE / CHUNK * DELAY_MULTIPLIER):
+        for i in range(0, RATE // CHUNK * DELAY_MULTIPLIER):
 
             try:
                 if self.stop_passive:
@@ -231,13 +233,13 @@ class Mic:
             pass
 
         transcribed = self.passive_stt_engine.transcribe_keyword(
-            ''.join(frames))
+            b''.join(frames))
 
         if transcribed is not None and \
            any(PERSONA in phrase for phrase in transcribed):
-            return THRESHOLD, PERSONA
+            return (THRESHOLD, PERSONA)
 
-        return False, transcribed
+        return (False, transcribed)
 
     def activeListen(self, THRESHOLD=None, LISTEN=True, MUSIC=False):
         """
@@ -257,7 +259,6 @@ class Mic:
 
             Returns a list of the matching options or None
         """
-        self.beforeListenEvent()
 
         RATE = 16000
         CHUNK = 1024
@@ -274,12 +275,14 @@ class Mic:
                                   input=True,
                                   frames_per_buffer=CHUNK)
 
+        self.speaker.play(dingdangpath.data('audio', 'beep_hi.wav'))
+
         frames = []
         # increasing the range # results in longer pause after command
         # generation
-        lastN = [THRESHOLD * 1.2] * 40
+        lastN = [THRESHOLD * 1.2 for i in range(40)]
 
-        for i in range(0, int(RATE / CHUNK * LISTEN_TIME)):
+        for i in range(0, RATE // CHUNK * LISTEN_TIME):
             try:
                 data = stream.read(CHUNK, exception_on_overflow=False)
                 frames.append(data)
@@ -290,14 +293,14 @@ class Mic:
 
                 average = sum(lastN) / float(len(lastN))
 
-                # TODO: 0.8 should not be a MAGIC NUMBER!
-                if average < THRESHOLD * 0.8:
+                # TODO: 0.9 should not be a MAGIC NUMBER!
+                if average < THRESHOLD * 0.9:
                     break
             except Exception as e:
                 self._logger.error(e)
                 continue
 
-        self.endListenEvent()
+        self.speaker.play(dingdangpath.data('audio', 'beep_lo.wav'))
 
         # save the audio data
         try:
@@ -312,46 +315,21 @@ class Mic:
             wav_fp.setnchannels(1)
             wav_fp.setsampwidth(pyaudio.get_sample_size(pyaudio.paInt16))
             wav_fp.setframerate(RATE)
-            wav_fp.writeframes(''.join(frames))
+            wav_fp.writeframes(b''.join(frames))
             wav_fp.close()
             f.seek(0)
+            frames = []
             return self.active_stt_engine.transcribe(f)
-
-    def beforeListenEvent(self):
-        # run plugins before listen
-        for plugin in plugin_loader.get_plugins_before_listen():
-            continueHandle = False
-            try:
-                continueHandle = plugin.beforeListen(
-                    self, config.get(), self.wxbot)
-            except Exception:
-                self._logger.error("plugin '%s' run error",
-                                   plugin.__name__, exc_info=True)
-            finally:
-                if not continueHandle:
-                    break
-
-    def endListenEvent(self):
-        # run plugins after listen
-        for plugin in plugin_loader.get_plugins_after_listen():
-            continueHandle = False
-            try:
-                continueHandle = plugin.afterListen(
-                    self, config.get(), self.wxbot)
-            except Exception:
-                self._logger.error("plugin '%s' run error",
-                                   plugin.__name__, exc_info=True)
-            finally:
-                if not continueHandle:
-                    break
 
     def say(self, phrase,
             OPTIONS=" -vdefault+m3 -p 40 -s 160 --stdout > say.wav",
             cache=False):
+        pixels.speak()
         self._logger.info(u"机器人说：%s" % phrase)
         self.stop_passive = True
+        self._logger.info("机器人说：%s" % phrase)
         if self.wxbot is not None:
-            wechatUser(config.get(), self.wxbot, "%s: %s" %
+            wechatUser(self.profile, self.wxbot, "%s: %s" %
                        (self.robot_name, phrase), "")
         # incase calling say() method which
         # have not implement cache feature yet.
@@ -365,7 +343,4 @@ class Mic:
 
     def play(self, src):
         # play a voice
-        self.sound.play_block(src)
-
-    def play_no_block(self, src):
-        self.sound.play(src)
+        self.speaker.play(src)
