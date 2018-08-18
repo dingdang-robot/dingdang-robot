@@ -9,7 +9,7 @@ import pkgutil
 import logging
 try:
     import pip.req
-except:
+except BaseException:
     import pip._internal.req
 from . import dingdangpath
 if sys.version_info < (3, 3):

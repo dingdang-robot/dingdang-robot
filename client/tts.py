@@ -34,7 +34,7 @@ from . import dingdangpath
 try:
     import gtts
     # import md5
-except :
+except BaseException:
     pass
 
 try:
@@ -43,9 +43,7 @@ try:
     reload(sys)
     sys.setdefaultencoding('utf8')
 except NameError:  # Python 3
-    from importlib import reload
-
-
+    #from importlib import reload
 
 
 class AbstractTTSEngine(object):

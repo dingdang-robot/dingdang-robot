@@ -17,7 +17,7 @@ try:
     import sys
     reload(sys)
     sys.setdefaultencoding('utf8')
-except:
+except BaseException:
     pass
 
 
@@ -223,8 +223,7 @@ def get_robot_by_slug(slug):
     if not slug or type(slug) is not str:
         raise TypeError("Invalid slug '%s'", slug)
 
-    selected_robots = list(filter(lambda robot: hasattr(robot, "SLUG") and
-                             robot.SLUG == slug, get_robots()))
+    selected_robots = list(filter(lambda robot: hasattr(robot, "SLUG") and robot.SLUG == slug, get_robots()))
     if len(selected_robots) == 0:
         raise ValueError("No robot found for slug '%s'" % slug)
     else:

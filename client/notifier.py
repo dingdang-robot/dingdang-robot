@@ -8,7 +8,7 @@ from . import app_utils
 import time
 try:
     import Queue
-except:
+except BaseException:
     import queue as Queue
 
 

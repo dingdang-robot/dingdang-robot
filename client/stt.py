@@ -32,7 +32,7 @@ try:
     # sys.setdefaultencoding('utf8')
 except NameError:  # Python 3
     from importlib import reload
-    from urllib import parse
+    #from urllib import parse
 
 reload(sys)
 # sys.setdefaultencoding('utf8')
@@ -232,7 +232,7 @@ class PocketSphinxSTT(AbstractSTTEngine):
         result = self._decoder.hyp()
         try:
             transcribed = [result.hypstr]
-        except:
+        except BaseException:
             transcribed = ''
         self._logger.info('PocketSphinx 识别到了：%r', transcribed)
         return transcribed
@@ -297,9 +297,7 @@ class BaiduSTT(AbstractSTTEngine):
         finally:
             cache.close()
         URL = 'http://openapi.baidu.com/oauth/2.0/token'
-        params = urllib.parse.urlencode({'grant_type': 'client_credentials',
-                                   'client_id': self.api_key,
-                                   'client_secret': self.secret_key})
+        params = urllib.parse.urlencode({'grant_type': 'client_credentials', 'client_id': self.api_key, 'client_secret': self.secret_key})
         r = requests.get(URL, params=params)
         try:
             r.raise_for_status()
@@ -845,8 +843,7 @@ def get_engine_by_slug(slug=None):
     if not slug or type(slug) is not str:
         raise TypeError("Invalid slug '%s'", slug)
 
-    selected_engines = list(filter(lambda engine: hasattr(engine, "SLUG") and
-                              engine.SLUG == slug, get_engines()))
+    selected_engines = list(filter(lambda engine: hasattr(engine, "SLUG") and engine.SLUG == slug, get_engines()))
     if len(selected_engines) == 0:
         raise ValueError("No STT engine found for slug '%s'" % slug)
     else:
