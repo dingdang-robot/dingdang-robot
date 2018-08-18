@@ -4,7 +4,7 @@ import smtplib
 try:
     from email.MIMEText import MIMEText
     from email.MIMEMultipart import MIMEMultipart
-except:
+except BaseException:
     from email.mime.text import MIMEText
     from email.mime.multipart import MIMEMultipart
 import logging
