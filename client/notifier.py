@@ -6,11 +6,10 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import logging
 from . import app_utils
 import time
-import sys
-if sys.version_info < (3, 0):
-    import Queue as queue  # Python 2
-else:
-    import queue  # Python 3
+try:
+    import Queue
+except BaseException:
+    import queue as Queue
 
 
 class Notifier(object):
@@ -26,7 +25,7 @@ class Notifier(object):
 
     def __init__(self, profile, brain):
         self._logger = logging.getLogger(__name__)
-        self.q = queue.Queue()
+        self.q = Queue.Queue()
         self.profile = profile
         self.notifiers = []
         self.brain = brain
@@ -90,7 +89,7 @@ class Notifier(object):
         try:
             notif = self.q.get(block=False)
             return notif
-        except queue.Empty:
+        except Queue.Empty:
             return None
 
     def getAllNotifications(self):

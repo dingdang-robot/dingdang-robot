@@ -13,9 +13,12 @@ try:
 except NameError:  # Python 3
     from importlib import reload
 
-import sys
-reload(sys)
-sys.setdefaultencoding('utf-8')
+try:
+    import sys
+    reload(sys)
+    sys.setdefaultencoding('utf8')
+except BaseException:
+    pass
 
 
 class AbstractRobot(object):
@@ -55,7 +58,7 @@ class TulingRobot(AbstractRobot):
         if 'tuling' in self.profile:
             if 'tuling_key' in self.profile['tuling']:
                 tuling_key = \
-                    self.profile['tuling']['tuling_key']
+                        self.profile['tuling']['tuling_key']
         return tuling_key
 
     def chat(self, texts):
@@ -81,7 +84,7 @@ class TulingRobot(AbstractRobot):
             elif respond['code'] == 302000:
                 for k in respond['list']:
                     result = result + u"【" + k['source'] + u"】 " +\
-                        k['article'] + "\t" + k['detailurl'] + "\n"
+                             k['article'] + "\t" + k['detailurl'] + "\n"
             else:
                 result = respond['text'].replace('<br>', '  ')
                 result = result.replace(u'\xa0', u' ')
@@ -130,15 +133,15 @@ class Emotibot(AbstractRobot):
         if 'emotibot' in self.profile:
             if 'appid' in self.profile['emotibot']:
                 appid = \
-                    self.profile['emotibot']['appid']
+                        self.profile['emotibot']['appid']
             if 'location' in self.profile:
                 location = \
-                    self.profile['location']
+                        self.profile['location']
             else:
                 location = None
             if 'active_mode' in self.profile['emotibot']:
                 more = \
-                    self.profile['emotibot']['active_mode']
+                        self.profile['emotibot']['active_mode']
             else:
                 more = False
         return (appid, location, more)
@@ -169,8 +172,7 @@ class Emotibot(AbstractRobot):
                 if self.more:
                     datas = jsondata.get('data')
                     for data in datas:
-                        if data.get('type') == 'text':
-                            responds.append(data.get('value'))
+                        responds.append(data.get('value'))
                 else:
                     responds.append(jsondata.get('data')[0].get('value'))
                 result = '\n'.join(responds)
@@ -201,7 +203,7 @@ class Emotibot(AbstractRobot):
                 else:
                     self.mic.say(u'抱歉，%s发送失败了！' % target, cache=True)
             else:
-                self.mic.say(result)
+                self.mic.say(result, cache=True)
             if result.endswith('?') or result.endswith(u'？') or \
                u'告诉我' in result or u'请回答' in result:
                 self.mic.skip_passive = True
@@ -221,8 +223,7 @@ def get_robot_by_slug(slug):
     if not slug or type(slug) is not str:
         raise TypeError("Invalid slug '%s'", slug)
 
-    selected_robots = filter(lambda robot: hasattr(robot, "SLUG") and
-                             robot.SLUG == slug, get_robots())
+    selected_robots = list(filter(lambda robot: hasattr(robot, "SLUG") and robot.SLUG == slug, get_robots()))
     if len(selected_robots) == 0:
         raise ValueError("No robot found for slug '%s'" % slug)
     else:

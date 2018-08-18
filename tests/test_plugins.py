@@ -59,3 +59,5 @@ class TestPlugins():
         query = u"发送微信二维码"
         inputs = []
         self.runConversation(query, inputs, SendQR)
+
+        

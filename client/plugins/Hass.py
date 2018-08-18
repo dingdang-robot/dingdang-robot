@@ -9,9 +9,12 @@ try:
 except NameError:  # Python 3
     from importlib import reload
 
-import sys
-reload(sys)
-sys.setdefaultencoding('utf8')
+try:
+    import sys
+    reload(sys)
+    sys.setdefaultencoding('utf8')
+except:
+    pass
 
 WORDS = ["JIATINGZHUSHOU", "ZHUSHOU"]
 SLUG = "homeassistant"
@@ -32,8 +35,6 @@ def handle(text, mic, profile, wxbot=None):
 
 
 def hass(text, mic, profile):
-    if isinstance(text, bytes):
-        text = text.decode('utf8')
     logger = logging.getLogger(__name__)
     if not profile[SLUG] or 'url' not in profile[SLUG] or \
        'port' not in profile[SLUG] or \
@@ -57,7 +58,6 @@ def hass(text, mic, profile):
     for device in devices:
         state = device["state"]
         attributes = device["attributes"]
-        domain = device["entity_id"].split(".")[0]
         if 'dingdang' in attributes.keys():
             dingdang = attributes["dingdang"]
             if isinstance(dingdang, list):
@@ -75,12 +75,10 @@ def hass(text, mic, profile):
                     break
             elif isinstance(dingdang, dict):
                 if text in dingdang.keys():
-                    if isinstance(text, bytes):
-                        text = text.decode('utf8')
                     try:
                         act = dingdang[text]
                         p = json.dumps({"entity_id": device["entity_id"]})
-                        s = "/api/services/" + domain + "/"
+                        s = "/api/services/switch/"
                         url_s = url + ":" + port + s + act
                         request = requests.post(url_s, headers=headers, data=p)
                         if format(request.status_code) == "200" or \

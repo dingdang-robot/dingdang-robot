@@ -26,7 +26,7 @@ def handle(text, mic, profile, wxbot=None):
         mic.say(u'请先配置好邮箱功能', cache=True)
         return
     sys.path.append(mic.dingdangpath.LIB_PATH)
-    from app_utils import emailUser
+    from ..app_utils import emailUser
     dest_file = os.path.join(mic.dingdangpath.TEMP_PATH, 'wxqr.png')
     wxbot.get_uuid()
     wxbot.gen_qr_code(dest_file)

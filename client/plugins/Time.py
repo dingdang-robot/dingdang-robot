@@ -37,4 +37,4 @@ def isValid(text):
         Arguments:
         text -- user-input, typically transcribed speech
     """
-    return any(word in text for word in [u"时间", u"几点"])
+    return any(word in text for word in ["时间", "几点"])
