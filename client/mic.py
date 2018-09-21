@@ -248,7 +248,6 @@ class Mic:
         self._logger.info("say something end ...")
         time.sleep(0.1)  # 避免叮当说话时误唤醒
         self.stop_passive = False
-        self._logger.info("6")
 
     def play(self, src):
         # play a voice
