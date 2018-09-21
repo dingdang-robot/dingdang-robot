@@ -1,4 +1,4 @@
-
+import math
 import apa102
 import time
 import threading
@@ -14,13 +14,10 @@ class Pixels:
 
     def __init__(self):
         self.basis = [0] * 3 * self.PIXELS_N
-        self.basis[0] = 1
-        self.basis[4] = 1
-        self.basis[8] = 2
 
         self.colors = [0] * 3 * self.PIXELS_N
         self.dev = apa102.APA102(num_led=self.PIXELS_N)
-
+        #self.dev.global_brightness = int(0b1111 * 0.7)
         self.next = threading.Event()
         self.queue = Queue.Queue()
         self.thread = threading.Thread(target=self._run)
@@ -28,6 +25,7 @@ class Pixels:
         self.thread.start()
         self.power = LED(5)
         self.power.on()
+        self.write([0]*3*self.PIXELS_N)
 
     def wakeup(self, direction=0):
         def f():
@@ -58,15 +56,26 @@ class Pixels:
             func()
 
     def _wakeup(self, direction=0):
-        for i in range(1, 25):
-            colors = [i * v for v in self.basis]
-            self.write(colors)
-            time.sleep(0.01)
+        N = self.PIXELS_N;
+        colors = [0, 120, 0]; 
+        colors = colors * self.PIXELS_N;
+        colors[15:18] = [120, 120, 120];
+        for n in range(5, N + 5):
+            i = n%12
+            if i != N - 1:
+                temp = colors[3*(i+1) : 3*(i+1)+3]
+                colors[3*(i+1) : 3*(i+1)+3] = colors [3 * i : 3 * i + 3];
+                colors[3*i : 3*i+3] = temp;
+            else:
+                temp = colors[3*(N-1):];
+                colors[3*(N-1):] = colors[:3];
+                colors[:3] = temp;
 
-        self.colors = colors
+            self.write([v * math.sin(3.14 * i / N) for v in colors])
+            time.sleep(0.04)
 
     def _listen(self):
-        for i in range(1, 25):
+        for i in range(1, 12):
             colors = [i * v for v in self.basis]
             self.write(colors)
             time.sleep(0.01)
@@ -74,24 +83,16 @@ class Pixels:
         self.colors = colors
 
     def _think(self):
-        colors = self.colors
-
-        self.next.clear()
-        while not self.next.is_set():
-            colors = colors[3:] + colors[:3]
-            self.write(colors)
-            time.sleep(0.2)
-
-        t = 0.1
-        for i in range(0, 5):
-            colors = colors[3:] + colors[:3]
-            self.write([(v * (4 - i) / 4) for v in colors])
-            time.sleep(t)
-            t /= 2
-
+        seconds = 2;
+        colors = [110, 0, 110] * self.PIXELS_N;
+        for i in range(0, int(50 * seconds)):
+            tempColors = [math.sin((i%50)*3.14/50) * v for v in colors];
+            self.write(tempColors)
+            time.sleep(0.04);
+        
         # time.sleep(0.5)
-
-        self.colors = colors
+        self.write([0]*3*self.PIXELS_N);
+        #self.colors = colors
 
     def _speak(self):
         colors = self.colors
@@ -128,20 +129,19 @@ pixels = Pixels()
 
 
 if __name__ == '__main__':
-    while True:
-
-        try:
-            pixels.wakeup()
-            time.sleep(3)
-            pixels.think()
-            time.sleep(3)
-            pixels.speak()
-            time.sleep(3)
-            pixels.off()
-            time.sleep(3)
-        except KeyboardInterrupt:
-            break
-
+    i = 0;
+    #pixels.wakeup()
+    #print("wakeup")
+    #time.sleep(3)
+    pixels.think(5)
+    print("think")
+    time.sleep(3)
+    #pixels.speak()
+    print("speak")
+    time.sleep(3)
+    #pixels.off()
+    print("off")
+    time.sleep(3)
 
     pixels.off()
     time.sleep(1)

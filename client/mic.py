@@ -26,14 +26,18 @@ class Mic:
     speechRec_persona = None
 
     THRESHOLD_MULTIPLIER = 2
-    RATE = 16000
-    CHUNK = 1024
+    RATE = 16000  #每秒数据
+    CHUNK = 1024  #每秒15段数据
+    audioFrames = []
 
     isLongVoiceState = False;
+    keepLive = True;
     passiveText = "";
     longVoiceText = "";
-    lockPassiveText = threading.RLock()
-    lockLongVoiceText = threading.RLock()
+    passiveLock = threading.Semaphore(0)
+    longVoiceLock = threading.Semaphore(0)
+    sttLongTextLock = threading.Semaphore(0)
+    audioFramesLock = threading.Lock()
     hasLockedPassive = False
 
     def __init__(self, speaker, passive_stt_engine, active_stt_engine):
@@ -67,59 +71,75 @@ class Mic:
         self.stop_passive = False
         self.skip_passive = False
         self.chatting_mode = False
-        try:
-            thread = threading.Thread(target=self.audioProcessThread,args=())
-            thread.setDaemon(True);
-            thread.start();
+        threadConsumer = threading.Thread(target=self.audioConsumerThread,args=())
+        threadProducer = threading.Thread(target=self.audioProducerThread,args=())
+        threadConsumer.setDaemon(True);
+        threadProducer.setDaemon(True);
+        threadConsumer.start();
+        threadProducer.start();
 
-        except KeyboardInterrupt,e:
-                thread.stop();
-                print "you stop the threading"
 
     def __del__(self):
         self._audio.terminate()
 
-    def audioProcessThread(self):
-        FRAME_TIME = 0.2  #400毫秒
-        threshold = 1000000;
-        longVoiceDuration = 0; #毫秒
-        lastVoiceFrameTime = 0; #毫秒
-        self.isLongVoiceState = False
-        # prepare recording stream
+    def audioProducerThread(self):
+        print "# prepare recording stream"
         stream = self._audio.open(format=pyaudio.paInt16,
                                   channels=1,
                                   rate=self.RATE,
                                   input=True,
                                   frames_per_buffer=self.CHUNK)
-        # stores the audio data
+        print "# stores the audio data"
+        while self.keepLive:
+            frame = stream.read(self.CHUNK, exception_on_overflow=False);
+             
+            self.audioFramesLock.acquire();
+            self.audioFrames.append(frame)       
+            if len(self.audioFrames) > 30:   #超过1秒钟的存储全删掉
+                del self.audioFrames[:-30]   
+            self.audioFramesLock.release();
+        
+
+    def audioConsumerThread(self):
+        FRAME_TIME = 0.2  #400毫秒
+        threshold = 1000000;
+        longVoiceDuration = 0; #毫秒
+        lastVoiceFrameTime = 0; #毫秒
+        self.isLongVoiceState = False
         frames = []
         lastN = [i for i in range(350, 370)]
         moreFrame = False;
-        while True:
+        while self.keepLive:
             frame = [];
 
-            for i in range(0, int(self.RATE / self.CHUNK * FRAME_TIME)):
-                frame.append(stream.read(self.CHUNK, exception_on_overflow=False))
-                 
-            frames += frame;
+            self.audioFramesLock.acquire();
+            if len(self.audioFrames) > 4:
+                frame = self.audioFrames[:4]
+                del self.audioFrames[:4]
+            self.audioFramesLock.release();
             
+            if len(frame) == 0:
+                time.sleep(0.05);
+                continue;
 
-            score = self.getScore("".join(frame))
-            print(score, threshold, self.stop_passive, self.isLongVoiceState, moreFrame)
             if self.stop_passive:
                 continue
 
+            frames += frame;
+            score = self.getScore("".join(frame))
+            #print(score, threshold,len(frame), self.stop_passive, self.isLongVoiceState, moreFrame)
+
             if score < threshold and not moreFrame: #如果静音并且不需要更多数据帧
                 if self.isLongVoiceState and nowTime() - lastVoiceFrameTime < 1200: #短暂的停顿, 文本分句
-                    print("short blank as hearing something", len(frames))
+                    self._logger.debug("short blank as hearing something", len(frames))
                     continue
                 elif self.isLongVoiceState:   #长时间的停顿, 本次语音输入停止
                     self.isLongVoiceState = False       #标记长语音识别停止
+                    self.longVoiceLock.release();
                     self.longVoiceText = self.sttProcess(frames);
-                    print(1, len(frames), self.longVoiceText)
+                    self.sttLongTextLock.release();
                     del frames[:]
 
-                    self.lockLongVoiceText.release();
                 else:
                     # save this data point as a score
                     lastN.pop(0)
@@ -129,25 +149,16 @@ class Mic:
                     slientDurationStart = nowTime();
                     del frames[:]
 
-                    if not self.hasLockedPassive:
-                        print("slient for passive lock acquire", len(frames))
-                        self.lockPassiveText.acquire();
-                        self.hasLockedPassive = True
-
                     continue                #非长语音识别状态下的静音跳出
             else: #否则非静音状态
                 moreFrame = False;
                 if not self.isLongVoiceState:  #如果非长语音识别状态下
-                    #print(4, len(frame), len(frames), len(''.join(frames)))
                     passiveText = self.passive_stt_engine.transcribe_keyword(''.join(frames));
                     if len(passiveText) != 0: #探测到唤醒词
                         self.passiveText = passiveText;
-                        print("slient for passive lock release", passiveText)
                         self.isLongVoiceState = True; #进入长语音识别状态
                         del frames[:];  #清空数据缓冲区
-                        self.lockLongVoiceText.acquire();
-                        self.lockPassiveText.release();
-                        self.hasLockedPassive = False;
+                        self.passiveLock.release();
                         moreFrame = True;
                     else:  #没有探测到唤醒词
                         if score > threshold:
@@ -198,27 +209,23 @@ class Mic:
         Listens for PERSONA in everyday sound. Times out after LISTEN_TIME, so
         needs to be restarted.
         """
-        print("passive listen acquire")
-        while not self.hasLockedPassive:
-            sleep(0.3)
-        self.lockPassiveText.acquire();
+        self.passiveLock.acquire();
         transcribed = self.passiveText;
-        self.lockPassiveText.release();
-        print("passive listen release")
         if transcribed is not None and \
            any(PERSONA in phrase for phrase in transcribed):
             return 200, PERSONA
 
         return False, transcribed
 
-    def activeListenToAllOptions(self, THRESHOLD=None, LISTEN=True,
+    def activeListen(self, THRESHOLD=None, LISTEN=True,
                                  MUSIC=False):
-        print("long text listen acquire")
-        self.lockLongVoiceText.acquire();
+        self.longVoiceLock.acquire();
+
+
+    def getTextFromListen(self):
+        self.sttLongTextLock.acquire();
         longVoiceText = self.longVoiceText;
         self.longVoiceText = "";
-        self.lockLongVoiceText.release();
-        print("long text listen release")
         return longVoiceText;
 
     def say(self, phrase,
@@ -230,19 +237,16 @@ class Mic:
         if self.wxbot is not None:
             wechatUser(config.get(), self.wxbot, "%s: %s" %
                        (self.robot_name, phrase), "")
-        self._logger.info("1")
         # incase calling say() method which
         # have not implement cache feature yet.
         # the count of args should be 3.
+        self._logger.info("start to say something ...")
         if self.speaker.say.__code__.co_argcount > 2:
-            self._logger.info("2")
             self.speaker.say(phrase, cache)
-            self._logger.info("3")
         else:
-            self._logger.info("4")
             self.speaker.say(phrase)
-            self._logger.info("5")
-        #time.sleep(1)  # 避免叮当说话时误唤醒
+        self._logger.info("say something end ...")
+        time.sleep(0.1)  # 避免叮当说话时误唤醒
         self.stop_passive = False
         self._logger.info("6")
 

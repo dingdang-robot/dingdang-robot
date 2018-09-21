@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 import logging
 import time
+import random
 from .notifier import Notifier
 from .brain import Brain
 from .drivers.pixels import pixels
@@ -98,11 +99,14 @@ class Conversation(object):
                 finally:
                     if not continueHandle:
                         break
+            self.mic.activeListen();
+            
+            pixels.think()
 
-            input = self.mic.activeListenToAllOptions(threshold)
+            input = self.mic.getTextFromListen();
+            #input = self.mic.activeListenToAllOptions(threshold)
             self._logger.debug("Stopped to listen actively with threshold: %r",
                                threshold)
-            pixels.think()
 
             # run plugins after listen
             for plugin in plugin_loader.get_plugins_after_listen():
@@ -122,5 +126,15 @@ class Conversation(object):
             elif config.get('shut_up_if_no_input', False):
                 self._logger.info("Active Listen return empty")
             else:
-                self.mic.say(u"什么?")
+                r = random.randint(0, 4)
+                if r == 0:
+                    self.mic.say(u"什么?")
+                elif r == 1:
+                    self.mic.say(u"我没听见声音")
+                elif r == 2:
+                    self.mic.say(u"没听清,请再说一遍")
+                elif r == 3:
+                    self.mic.say(u"啊?我走神了吗")
+                elif r == 4:
+                    self.mic.say(u"你说了什么?")
             pixels.off()
