@@ -361,7 +361,7 @@ def get_sound_manager(audio=None):
     from . import config
     global _sound_instance
     if not _sound_instance:
-        _sound_instance = Sound(config.get('sound_engine', 'pyaudio'),
+        _sound_instance = Sound(config.get('sound_engine', 'aplay'),
                                 audio=audio)
     return _sound_instance
 
