@@ -9,7 +9,7 @@ from client import dingdangpath
 from client.audio_utils import mp3_to_wav
 from client import player
 from client import config
-
+from . import config
 
 class WechatBot(WXBot):
     def __init__(self, brain):
@@ -44,7 +44,7 @@ class WechatBot(WXBot):
                     return
                 if self.music_mode is not None:
                     return self.handle_music_mode(msg_data)
-                self.brain.query([msg_data], self, True)
+                self.brain.query([msg['content']['data']], self, True)
             elif msg['content']['type'] == 4:
                 mp3_file = os.path.join(dingdangpath.TEMP_PATH,
                                         'voice_%s.mp3' % msg['msg_id'])

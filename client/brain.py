@@ -16,8 +16,6 @@ class Brain(object):
 
         Arguments:
         mic -- used to interact with the user (for both input and output)
-        profile -- contains information related to the user (e.g., phone
-                   number)
         """
 
         self.mic = mic

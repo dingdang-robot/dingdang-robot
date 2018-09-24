@@ -18,7 +18,7 @@ _plugins_before_listen = []
 # plugins run at after listen
 _plugins_after_listen = []
 
-_thirdparty_exclude_plugins = {'netease_music'}
+_thirdparty_exclude_plugins = ['netease_music']
 
 
 def init_plugins():
@@ -116,6 +116,5 @@ def get_plugins_after_listen():
 
 
 def check_thirdparty_exclude(mod):
-    if mod.SLUG in _thirdparty_exclude_plugins:
-        return True
-    return False
+    return mod.SLUG in _thirdparty_exclude_plugins
+
