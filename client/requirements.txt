@@ -4,7 +4,7 @@ argparse==1.2.2
 mock==1.0.1
 pytz==2014.10
 PyYAML==3.11
-requests==2.5.0
+requests>=2.20.0
 
 # Pocketsphinx STT engine
 cmuclmtk==0.1.5
